@@ -54,6 +54,18 @@
         </activity>
 
         <activity
+            android:name=".SettingsActivity"
+            android:label="Settings"
+            android:screenOrientation="portrait">
+        </activity>
+
+        <activity
+            android:name=".Settings.DictionaryActivity"
+            android:label="Dictionary Management"
+            android:screenOrientation="portrait">
+        </activity>
+
+        <activity
             android:name=".PassthroughActivity"
             android:label="Kaku"
             android:launchMode="singleInstance"

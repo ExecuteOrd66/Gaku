@@ -104,6 +104,7 @@ fun setupKakuDatabasesAndFiles(context: Context)
     try {
         val filesAndPaths = hashMapOf(
                 JMDICT_DATABASE_NAME to context.filesDir.absolutePath,
+                JM_DICT_FURIGANA_DATABASE_NAME to context.filesDir.absolutePath,
                 TESS_DATA_NAME to "${context.filesDir.absolutePath}/$TESS_FOLDER_NAME")
 
         if (shouldResetData(filesAndPaths))
@@ -135,6 +136,27 @@ fun shouldResetData(filesAndPaths: Map<String, String>) : Boolean
     return false
 }
 
+fun resetGakuDatabases(context: Context) {
+    try {
+        val filesAndPaths = hashMapOf(
+            JMDICT_DATABASE_NAME to context.filesDir.absolutePath,
+            JM_DICT_FURIGANA_DATABASE_NAME to context.filesDir.absolutePath,
+            TESS_DATA_NAME to "${context.filesDir.absolutePath}/$TESS_FOLDER_NAME"
+        )
+        
+        for (fileAndPath in filesAndPaths) {
+            val file = File("${fileAndPath.value}/${fileAndPath.key}")
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+        
+        copyFilesIfNotExists(context, filesAndPaths)
+    } catch (e: Exception) {
+        Log.e(TAG, "Error resetting databases", e)
+    }
+}
+
 fun createDirIfNotExists(path: String)
 {
     val dir = File(path)
@@ -154,18 +176,21 @@ fun copyFilesIfNotExists(context: Context, filesAndPaths: Map<String, String>)
 
         if (File(filePath).exists())
         {
-            return
+            continue
         }
 
         createDirIfNotExists(path)
 
-        val input = context.assets.open(fileName)
-        val output = FileOutputStream(filePath)
+        try {
+            val input = context.assets.open(fileName)
+            val output = FileOutputStream(filePath)
 
-        input.copyTo(output);
-        output.close()
-
-        Log.d(TAG, "Copied $filePath")
+            input.copyTo(output);
+            output.close()
+            Log.d(TAG, "Copied $filePath")
+        } catch (e: java.io.FileNotFoundException) {
+            Log.w(TAG, "Asset $fileName not found, skipping copy.")
+        }
     }
 }
 

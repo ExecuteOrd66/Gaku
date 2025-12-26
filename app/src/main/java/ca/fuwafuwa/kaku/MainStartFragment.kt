@@ -36,6 +36,8 @@ class MainStartFragment : Fragment()
     private lateinit var kakuTitle : TextView
     private lateinit var tutorialText : TextView
     private lateinit var githubText : TextView
+    private lateinit var settingsText : TextView
+    private lateinit var syncText : TextView
 
     private lateinit var supportText : TextView
     private lateinit var progressBar : ProgressBar
@@ -73,10 +75,19 @@ class MainStartFragment : Fragment()
 
         rootView = inflater.inflate(R.layout.fragment_start, container, false)
 
+<<<<<<< Updated upstream:app/src/main/java/ca/fuwafuwa/kaku/MainStartFragment.kt
         kakuLogo = rootView.findViewById(R.id.kaku_logo)
         kakuTitle = rootView.findViewById(R.id.kaku_title)
         tutorialText = rootView.findViewById(R.id.kaku_tutorial)
         githubText = rootView.findViewById(R.id.kaku_github)
+=======
+        gakuLogo = rootView.findViewById(R.id.gaku_logo)
+        gakuTitle = rootView.findViewById(R.id.gaku_title)
+        tutorialText = rootView.findViewById(R.id.gaku_tutorial)
+        githubText = rootView.findViewById(R.id.gaku_github)
+        settingsText = rootView.findViewById(R.id.gaku_settings)
+        syncText = rootView.findViewById(R.id.gaku_sync)
+>>>>>>> Stashed changes:app/src/main/java/ca/fuwafuwa/gaku/MainStartFragment.kt
 
         supportText = rootView.findViewById(R.id.support_text)
         progressBar = rootView.findViewById(R.id.progress_bar)
@@ -94,6 +105,18 @@ class MainStartFragment : Fragment()
         githubText.setOnClickListener {
             val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/0xbad1d3a5/Kaku"))
             startActivity(browserIntent)
+        }
+
+        settingsText.setOnClickListener {
+            startActivity(Intent(mainActivity, SettingsActivity::class.java))
+        }
+
+        syncText.setOnClickListener {
+            ca.fuwafuwa.gaku.Network.JitenApiClient.getInstance(requireContext()).sync { success, count ->
+                activity?.runOnUiThread {
+                    android.widget.Toast.makeText(requireContext(), if (success) "Sync complete: $count words updated" else "Sync failed", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
         }
 
         return rootView
