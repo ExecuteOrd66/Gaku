@@ -1,4 +1,4 @@
-package ca.fuwafuwa.kaku;
+package ca.fuwafuwa.gaku;
 
 import android.util.Xml;
 
@@ -8,14 +8,14 @@ import com.atilika.kuromoji.ipadic.Tokenizer;
 import org.junit.Test;
 import java.util.List;
 
-import ca.fuwafuwa.kaku.Deinflictor.PosMap;
+import ca.fuwafuwa.gaku.Deinflictor.PosMap;
 
 /**
  * To work on unit tests, switch the Test Artifact in the Build Variants view.
  */
 public class ExampleUnitTest {
 
-    private String GetTokenString(Token token){
+    private String GetTokenString(Token token) {
         return String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s",
                 PosMap.Companion.GetPosMapVal(token.getPartOfSpeechLevel1()),
                 PosMap.Companion.GetPosMapVal(token.getPartOfSpeechLevel2()),
@@ -29,7 +29,7 @@ public class ExampleUnitTest {
     }
 
     @Test
-    public void test(){
+    public void test() {
         Tokenizer tokenizer = new Tokenizer();
         List<Token> tokens = tokenizer.tokenize("ずっと側にいてくれてありがとう。");
         for (Token token : tokens) {
@@ -38,8 +38,8 @@ public class ExampleUnitTest {
     }
 
     @Test
-    public void TestCircledNum(){
-        for (int i = 1; i <= 100; i++){
+    public void TestCircledNum() {
+        for (int i = 1; i <= 100; i++) {
             System.out.println(LangUtils.Companion.ConvertIntToCircledNum(i));
         }
     }

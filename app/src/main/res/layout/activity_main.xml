@@ -7,7 +7,9 @@
 
 <fragment
     android:id="@+id/main_fragment"
-    android:name="ca.fuwafuwa.kaku.MainStartFragment"
+    android:name="ca.fuwafuwa.gaku.MainStartFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent" />
 </LinearLayout>
+
+

@@ -10,11 +10,11 @@
     tools:context=".MainStartFragment">
 
     <TextView
-        android:id="@+id/kaku_logo"
+        android:id="@+id/gaku_logo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:text="画"
+        android:text="学"
         android:textColor="@color/PrimaryDark"
         android:textSize="150sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -22,7 +22,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/kaku_title"
+        android:id="@+id/gaku_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
@@ -31,10 +31,10 @@
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/kaku_logo" />
+        app:layout_constraintTop_toBottomOf="@+id/gaku_logo" />
 
     <TextView
-        android:id="@+id/kaku_tutorial"
+        android:id="@+id/gaku_tutorial"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
@@ -45,10 +45,10 @@
         android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/kaku_title" />
+        app:layout_constraintTop_toBottomOf="@+id/gaku_title" />
 
     <TextView
-        android:id="@+id/kaku_github"
+        android:id="@+id/gaku_github"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
@@ -58,7 +58,7 @@
         android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/kaku_tutorial" />
+        app:layout_constraintTop_toBottomOf="@+id/gaku_tutorial" />
 
     <TextView
         android:id="@+id/support_text"
@@ -69,7 +69,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="15dp"
         android:gravity="center"
-        android:text="@string/kaku_loading"
+        android:text="@string/gaku_loading"
         android:textColor="@color/PrimaryDark"
         android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="@+id/horizontal_line"
@@ -132,3 +132,4 @@
     </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

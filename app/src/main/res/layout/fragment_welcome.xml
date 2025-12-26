@@ -23,14 +23,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:text="画"
+            android:text="学"
             android:textColor="@color/PrimaryDark"
             android:textSize="200dp" />
 
         <TextView
             android:layout_width="300dp"
             android:layout_height="wrap_content"
-            android:text="Welcome to Kaku!"
+            android:text="Welcome to Gaku!"
             android:textColor="@color/PrimaryDark"
             android:textSize="28dp" />
 
@@ -38,9 +38,10 @@
             android:layout_width="300dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="Please take the next few minutes to read through the tutorial and familiarize yourself with Kaku. There's a lot to learn!\n\nTo begin, slide right."
+            android:text="Please take the next few minutes to read through the tutorial and familiarize yourself with Gaku. There's a lot to learn!\n\nTo begin, slide right."
             android:textColor="@color/PrimaryDark"
             android:textSize="20dp" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

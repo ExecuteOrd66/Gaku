@@ -1,16 +1,20 @@
 <resources>
-    <string name="app_name">Kaku</string>
-    <string name="support_text">"Like Kaku? Rate the app!"</string>
-    <string name="kaku_loading">Kaku is loading…</string>
-    <string name="beta_screen">"Thanks for installing the beta version of Kaku! If you didn't intend to install the beta version, I highly recommend that you go to the Play Store and leave the beta program - the beta version of Kaku may be unstable and more prone to bugs. If you are not in the beta program and but still seeing this message, please let me know right away by e-mailing me below!
+    <string name="app_name">Gaku</string>
+    <string name="support_text">"Like Gaku? Rate the app (no store yet)!"</string>
+    <string name="gaku_loading">Gaku is loading…</string>
+    <string name="beta_screen">"Thanks for installing Gaku! This program is a fork of the no-longer maintained Kaku app, with the goal of replacing the OCR engine with a more reliable one from Google. I do not intend to maintain this project, so feel free to contribute however you see fit. Note that the codebase was largely vibe-coded to produce a minimum-viable-product, as I am not an android developer. I'm sorry if the changes cause any future maintainers headache.
 
-If you run into issues (i.e., constant crashes or graphical glitches) in the beta, please let me know at 0xbad1d3a5@gmail.com! Feedback and suggestions are also welcome!
 
-BETA UPDATES:
+BETA UPDATES (Gaku):
 
 vLATEST
-- Revert Tesseract library update as that was causing vertical OCR recognition issues
-- Fresh build from clone
+- Fix crash when choosing Kanji alternatives
+- Fix crash in edit window
+- Fix crash on screen rotation
+- Global rename from Kaku to Gaku
+- Replace OCR backend with Google MLKit (Offline)
+- Remove screenshot preprocessing, as this is handled by MLKit
+- Upgrade gradle to use more modern Android practices and dependencies.
 
 v1.3.72
 - Emergency fix for Android 12

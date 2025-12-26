@@ -1,8 +1,8 @@
-# Ignore data files for Kaku - these shouldn't be checked in
+# Ignore data files for Gaku - these shouldn't be checked in
 app/src/main/assets/*
 app/src/main/res/raw/*
 
-# Ignore private and sensitive configuration files for Kaku
+# Ignore private and sensitive configuration files for Gaku
 # If you pull the repo, you will need to create and populate these files yourself
 # !!!! DO NOT EVER COMMIT THESE FILES AS THEY CONTAIN EXTREMELY SENSITIVE INFORMATION !!!!
 app/src/main/res/values/private_strings.xml
@@ -32,6 +32,9 @@ app/debug/*
 bin/
 gen/
 out/
+
+#Editor files
+.vscode/
 
 # Gradle files
 .gradle/

@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="ca.fuwafuwa.kaku">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- REQUIRED for floating windows -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- REQUIRED for general Foreground Services -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- REQUIRED for Android 14+ Screen Capture-->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+
+    <!-- REQUIRED for Android 13+ to show the Foreground Service Notification -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -19,6 +28,11 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/ads_app_id" />
 
+        <!-- Correct for MLKit V2 Unbundled Japanese model -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr_japanese" />
+
         <receiver android:name=".MainService$CloseMainService" />
         <receiver android:name=".MainService$TogglePageModeMainService" />
         <receiver android:name=".MainService$ToggleInstantModeMainService" />
@@ -27,7 +41,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:label="Kaku"
+            android:label="Gaku"
             android:noHistory="false"
             android:launchMode="standard"
             android:screenOrientation="portrait"
@@ -39,7 +53,7 @@
         </activity>
 
         <activity android:name=".BetaActivity"
-            android:label="Kaku Beta"
+            android:label="Gaku Beta"
             android:noHistory="false"
             android:launchMode="standard"
             android:screenOrientation="portrait">
@@ -47,7 +61,7 @@
 
         <activity
             android:name=".TutorialActivity"
-            android:label="Kaku Tutorial"
+            android:label="Gaku Tutorial"
             android:noHistory="false"
             android:launchMode="standard"
             android:screenOrientation="portrait">
@@ -55,7 +69,7 @@
 
         <activity
             android:name=".PassthroughActivity"
-            android:label="Kaku"
+            android:label="Gaku"
             android:launchMode="singleInstance"
             android:noHistory="true"
             android:exported="true">
@@ -71,6 +85,7 @@
             </intent-filter>
         </activity>
 
+        <!-- Defines the type for Android 10-14+ compatibility -->
         <service
             android:name=".MainService"
             android:foregroundServiceType="mediaProjection"
@@ -78,3 +93,6 @@
     </application>
 
 </manifest>
+
+
+
