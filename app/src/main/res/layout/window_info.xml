@@ -28,7 +28,7 @@
                 android:layout_height="match_parent"
                 android:layout_margin="10dp">
 
-                <ca.fuwafuwa.kaku.Windows.Views.KanjiGridView
+                <ca.fuwafuwa.gaku.Windows.Views.KanjiGridView
                     android:id="@+id/kanji_grid"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -76,3 +76,4 @@
     </LinearLayout>
 
 </FrameLayout>
+

@@ -13,7 +13,7 @@
         android:scaleType="fitCenter"
         android:layout_above="@+id/edit_text" />
 
-    <ca.fuwafuwa.kaku.Windows.Views.ChoiceEditText
+    <ca.fuwafuwa.gaku.Windows.Views.ChoiceEditText
         android:id="@+id/edit_text"
         android:imeOptions="flagNoExtractUi"
         android:maxLines="1"
@@ -28,3 +28,4 @@
         android:layout_alignParentBottom="true"/>
 
 </RelativeLayout>
+

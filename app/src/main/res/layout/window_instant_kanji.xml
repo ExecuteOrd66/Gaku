@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:background="@drawable/bg_solid_border_corners_0_white_black_round">
 
-    <ca.fuwafuwa.kaku.Windows.Views.KanjiGridView
+    <ca.fuwafuwa.gaku.Windows.Views.KanjiGridView
         android:id="@+id/kanji_grid"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -20,3 +20,4 @@
     </LinearLayout>
 
 </FrameLayout>
+

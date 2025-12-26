@@ -8,3 +8,4 @@
         android:color="@color/blue_dark"/>
     <solid android:color="@color/blue_dark_translucent"/>
 </shape>
+
