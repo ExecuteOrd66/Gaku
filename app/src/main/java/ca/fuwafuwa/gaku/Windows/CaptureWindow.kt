@@ -13,6 +13,7 @@ import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import ca.fuwafuwa.gaku.*
 import ca.fuwafuwa.gaku.Ocr.BoxParams
@@ -21,6 +22,10 @@ import ca.fuwafuwa.gaku.Ocr.OcrRunnable
 import ca.fuwafuwa.gaku.Prefs
 import ca.fuwafuwa.gaku.R
 import ca.fuwafuwa.gaku.Windows.Interfaces.WindowListener
+import ca.fuwafuwa.gaku.Windows.Views.WordOverlayView
+import ca.fuwafuwa.gaku.Analysis.ParsedResult
+import ca.fuwafuwa.gaku.Analysis.ParsedWord
+import ca.fuwafuwa.gaku.Network.JitenApiClient
 import ca.fuwafuwa.gaku.XmlParsers.CommonParser
 import java.io.FileOutputStream
 import java.io.IOException
@@ -33,6 +38,7 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     private val mOcr: OcrRunnable
     private val mWindowBox: View
     private val mImageView: ImageView
+    private val mWordOverlay: WordOverlayView
     private val mFadeRepeat: Animation
     private val mBorderDefault: Drawable?
     private val mBorderReady: Drawable?
@@ -57,6 +63,10 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
         this.mCommonParser = CommonParser(context)
 
         mImageView = window.findViewById(R.id.capture_image)
+        mWordOverlay = window.findViewById(R.id.word_overlay)
+        mWordOverlay.setOnWordClickListener { word -> onWordClicked(word) }
+        
+
         mFadeRepeat = AnimationUtils.loadAnimation(this.context, R.anim.fade_repeat)
         
         // FIX: Use ContextCompat for modern Android compatibility
@@ -108,22 +118,35 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
     override fun onTouch(e: MotionEvent): Boolean
     {
+        if (e.pointerCount >= 3)
+        {
+            val currentContext = context
+            if (currentContext != null) {
+                Toast.makeText(currentContext, "Closing Gaku...", Toast.LENGTH_SHORT).show()
+                (currentContext as? MainService)?.stopSelf()
+            }
+            return true
+        }
+
         hideInstantWindows()
+
+        if (e.action == MotionEvent.ACTION_MOVE && !mInLongPress && !mProcessingOcr)
+        {
+            mImageView.setImageResource(0)
+            mWordOverlay.visibility = View.GONE
+            updateWindowFlags(false)
+        }
 
         if (!mInLongPress && !mProcessingOcr)
         {
-            mImageView.setImageResource(0)
             setBorderStyle(e)
         }
 
-        when (e.action)
+        if (e.action == MotionEvent.ACTION_MOVE)
         {
-            MotionEvent.ACTION_MOVE ->
+            if (System.currentTimeMillis() > mLastDoubleTapTime + mLastDoubleTapIgnoreDelay)
             {
-                if (System.currentTimeMillis() > mLastDoubleTapTime + mLastDoubleTapIgnoreDelay)
-                {
-                    mOcr.cancel()
-                }
+                mOcr.cancel()
             }
         }
 
@@ -202,6 +225,50 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     fun hideInstantWindows()
     {
         windowCoordinator.getWindow(WINDOW_INSTANT_KANJI).hide()
+        windowCoordinator.getWindow(WINDOW_WORD_DETAIL).hide()
+    }
+
+    fun setParsedResult(result: ParsedResult)
+    {
+        val prefs = getPrefs(context)
+        (context as MainService).handler.post {
+            mWordOverlay.setTextDirection(prefs.textDirectionSetting)
+            mWordOverlay.setParsedResult(result)
+            mWordOverlay.visibility = View.VISIBLE
+            updateWindowFlags(true)
+        }
+    }
+
+    private fun updateWindowFlags(focusable: Boolean) {
+        if (focusable) {
+            params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+            params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+        } else {
+            params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL.inv()
+        }
+        if (addedToWindowManager) {
+            windowManager.updateViewLayout(window, params)
+        }
+    }
+
+    private fun onWordClicked(word: ParsedWord)
+    {
+        val wordDetailWindow = windowCoordinator.getWindowOfType<WordDetailWindow>(WINDOW_WORD_DETAIL)
+        wordDetailWindow.setWord(word)
+        wordDetailWindow.setOnStatusChangeListener {
+            mWordOverlay.invalidate()
+        }
+        
+        // Calculate the same border offset used in cropping
+        val borderOffset = dpToPx(context, 1) + 1
+        
+        // Position popup above the word, relative to screen
+        val rect = word.boundingBox
+        val x = params.x + borderOffset + rect.left + (rect.width() / 2)
+        val y = params.y + borderOffset + rect.top - 200 // Offset upwards
+        
+        wordDetailWindow.showAt(x, y)
     }
 
     override fun getDefaultParams(): WindowManager.LayoutParams

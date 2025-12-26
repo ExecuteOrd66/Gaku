@@ -21,14 +21,17 @@ import ca.fuwafuwa.gaku.Interfaces.Stoppable
 import ca.fuwafuwa.gaku.MainService
 import ca.fuwafuwa.gaku.Windows.CaptureWindow
 import ca.fuwafuwa.gaku.Windows.Data.ChoiceCertainty
-import ca.fuwafuwa.gaku.Windows.Data.DisplayDataOcr
 import ca.fuwafuwa.gaku.Windows.Data.SquareCharOcr
+import ca.fuwafuwa.gaku.Windows.Data.DisplayDataOcr
+import ca.fuwafuwa.gaku.Analysis.TextAnalyzer
+import ca.fuwafuwa.gaku.Analysis.ParsedResult
 
 class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) : Runnable, Stoppable {
     private val mContext: MainService = context as MainService
     private val mOcrLock = java.lang.Object()
     private val mSimilarChars = loadSimilarChars()
     private val mCommonMistakes = loadCommonMistakes()
+    private val mTextAnalyzer = TextAnalyzer(context)
     private var mTextRecognizer: com.google.mlkit.vision.text.TextRecognizer? = null
     private var mThreadRunning = true
     private var mOcrParams: OcrParams? = null
@@ -124,12 +127,14 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
                             // 3. Process blocking (Tasks.await is safe here in background thread)
                             val result = Tasks.await(recognizer.process(image), 10, TimeUnit.SECONDS)
 
-                            val displayData = getDisplayData(ocrParams, result)
+                             val displayData = getDisplayData(ocrParams, result)
                             processDisplayData(displayData)
 
+                            val ocrTime = System.currentTimeMillis() - startTime
+                            val parsedResult = mTextAnalyzer.analyze(result, displayData, ocrTime)
+
                             if (displayData.text.isNotEmpty()) {
-                                val ocrTime = System.currentTimeMillis() - startTime
-                                sendOcrResultToContext(OcrResult(displayData, ocrTime))
+                                sendOcrResultToContext(parsedResult)
                             } else {
                                 sendToastToContext("No Characters Recognized.")
                             }
@@ -320,7 +325,7 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
         return commonMistakes
     }
 
-    private fun sendOcrResultToContext(result: OcrResult) {
+    private fun sendOcrResultToContext(result: Any) {
         Message.obtain(mContext.handler, 0, result).sendToTarget()
     }
 
