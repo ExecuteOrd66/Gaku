@@ -34,7 +34,3 @@ public class Kd2Radical {
         parser.require(XmlPullParser.END_TAG, null, XMLTAG);
     }
 }
-
-
-
-

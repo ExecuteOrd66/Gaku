@@ -16,7 +16,3 @@ class OcrResult(val displayData: DisplayDataOcr,
         return String.format("%s\nOcrTime: %d\nInstant: %b", text, mOcrTime, displayData.instantMode)
     }
 }
-
-
-
-

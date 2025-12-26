@@ -73,6 +73,7 @@ public class Meaning {
     public void setFkEntry(Entry fkEntry) {
         this.fkEntry = fkEntry;
     }
+
     public ForeignCollection<MeaningKanjiRestriction> getKanjiRestrictions() {
         return kanjiRestrictions;
     }
@@ -122,7 +123,3 @@ public class Meaning {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

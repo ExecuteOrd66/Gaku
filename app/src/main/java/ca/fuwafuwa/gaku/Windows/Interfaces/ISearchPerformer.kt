@@ -7,6 +7,3 @@ interface ISearchPerformer
 {
     fun performSearch(squareChar: ISquareChar)
 }
-
-
-

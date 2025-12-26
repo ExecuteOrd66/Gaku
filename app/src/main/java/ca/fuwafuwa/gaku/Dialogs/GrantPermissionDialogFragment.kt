@@ -44,6 +44,3 @@ class GrantPermissionDialogFragment : DialogFragment()
         } ?: throw IllegalStateException("Activity cannot be null")
     }
 }
-
-
-

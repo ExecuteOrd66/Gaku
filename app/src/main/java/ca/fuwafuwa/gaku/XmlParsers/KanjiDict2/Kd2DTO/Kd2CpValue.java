@@ -27,7 +27,3 @@ public class Kd2CpValue {
         text = CommonParser.parseString(parser);
     }
 }
-
-
-
-

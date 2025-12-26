@@ -57,7 +57,3 @@ public class Searcher implements JmTask.SearchJmTaskDone {
         mSearchDictDone.jmResultsCallback(results, searchInfo);
     }
 }
-
-
-
-

@@ -12,7 +12,6 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import ca.fuwafuwa.gaku.*
 import ca.fuwafuwa.gaku.Ocr.BoxParams
 import ca.fuwafuwa.gaku.Windows.*
@@ -104,12 +103,12 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
 
     fun highlight()
     {
-        background = ContextCompat.getDrawable(mContext, R.drawable.bg_translucent_border_0_blue_blue)
+        background = mContext.getDrawable(R.drawable.bg_translucent_border_0_blue_blue)
     }
 
     fun highlightLight()
     {
-        background = ContextCompat.getDrawable(mContext, R.drawable.bg_transparent_border_0_nil_default)
+        background = mContext.getDrawable(R.drawable.bg_transparent_border_0_nil_default)
     }
 
     fun unhighlight()
@@ -173,6 +172,7 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
                     }
                     ChoiceResultType.NONE ->
                     {
+                        // Do nothing
                     }
                 }
             }
@@ -190,11 +190,6 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
         window.show()
     }
 
-    override fun onDown(e: MotionEvent): Boolean
-    {
-        return true
-    }
-
     override fun onSingleTapUp(e: MotionEvent): Boolean
     {
         highlightLight()
@@ -203,12 +198,13 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
         return true
     }
 
-    override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean
+    override fun onScroll(motionEvent: MotionEvent, motionEvent1: MotionEvent, v: Float, v1: Float): Boolean
     {
+        // scroll event start
         if (mScrollStartEvent == null)
         {
             Log.d(TAG, "ScrollStart")
-            mScrollStartEvent = e1
+            mScrollStartEvent = motionEvent
 
             unhighlight()
             mKanjiTextView.visibility = View.INVISIBLE
@@ -217,26 +213,32 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
 
             mKanjiChoiceWindow.onSquareScrollStart(mSquareChar, getKanjiBoxParams())
         }
+        // scroll event continuing
         else {
             Log.d(TAG, "ScrollContinue")
-            mIconImageView.setImageResource(mKanjiChoiceWindow.onSquareScroll(e2))
+            mIconImageView.setImageResource(mKanjiChoiceWindow.onSquareScroll(motionEvent1))
         }
 
         return true
     }
 
-    override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean
+    override fun onDown(motionEvent: MotionEvent): Boolean
     {
         return false
     }
 
-    override fun onLongPress(e: MotionEvent)
+    override fun onFling(motionEvent: MotionEvent, motionEvent1: MotionEvent, v: Float, v1: Float): Boolean
+    {
+        return false
+    }
+
+    override fun onLongPress(motionEvent: MotionEvent)
     {
         val window = getProperWindow<ICopyText>()
         window.copyText()
     }
 
-    override fun onShowPress(e: MotionEvent)
+    override fun onShowPress(e: MotionEvent?)
     {
     }
 
@@ -263,6 +265,3 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
         private val TAG = KanjiCharacterView::class.java.name
     }
 }
-
-
-

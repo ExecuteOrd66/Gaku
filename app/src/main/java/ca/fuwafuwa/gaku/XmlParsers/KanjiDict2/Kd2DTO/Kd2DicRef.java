@@ -31,7 +31,3 @@ public class Kd2DicRef {
         text = CommonParser.parseString(parser);
     }
 }
-
-
-
-

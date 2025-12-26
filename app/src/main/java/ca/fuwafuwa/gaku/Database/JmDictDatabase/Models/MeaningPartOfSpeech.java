@@ -45,7 +45,3 @@ public class MeaningPartOfSpeech {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

@@ -104,6 +104,3 @@ class StarRatingDialogFragment : DialogFragment()
         } ?: throw IllegalStateException("Activity cannot be null")
     }
 }
-
-
-

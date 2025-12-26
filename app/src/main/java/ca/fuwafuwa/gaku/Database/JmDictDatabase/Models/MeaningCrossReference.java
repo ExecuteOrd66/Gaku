@@ -45,7 +45,3 @@ public class MeaningCrossReference {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

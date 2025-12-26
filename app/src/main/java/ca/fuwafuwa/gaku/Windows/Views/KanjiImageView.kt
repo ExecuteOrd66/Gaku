@@ -63,6 +63,3 @@ class KanjiImageView : ImageView
         private val TAG = KanjiImageView::class.java.name
     }
 }
-
-
-

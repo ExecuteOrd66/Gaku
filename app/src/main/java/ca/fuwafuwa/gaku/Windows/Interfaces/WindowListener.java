@@ -10,6 +10,3 @@ public interface WindowListener extends GestureDetector.OnGestureListener, Gestu
     boolean onTouch(MotionEvent e);
     boolean onResize(MotionEvent e);
 }
-
-
-

@@ -10,7 +10,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-import ca.fuwafuwa.gaku.GakuTools;
+import ca.fuwafuwa.gaku.Tools;
 import ca.fuwafuwa.gaku.R;
 import ca.fuwafuwa.gaku.Windows.Data.SquareCharOcr;
 import kotlin.Pair;
@@ -45,19 +45,18 @@ public class ChoiceGridView extends SquareGridView {
         Init(context);
     }
 
-    private void Init(Context context){
+    private void Init(Context context) {
         mContext = context;
         setCellSize(100);
     }
 
-    public void onKanjiViewScrollStart(SquareCharOcr squareChar, MotionEvent e)
-    {
+    public void onKanjiViewScrollStart(SquareCharOcr squareChar, MotionEvent e) {
         mKanjiChoices = new ArrayList<>();
         setItemCount(squareChar.getAllChoices().size() + 1);
 
         int[] pos = squareChar.getBitmapPos();
-        if (pos != null){
-            int dp10 = GakuTools.dpToPx(mContext, 10);
+        if (pos != null) {
+            int dp10 = Tools.dpToPx(mContext, 10);
             Bitmap orig = squareChar.getDisplayData().getBitmap();
             int width = pos[2] - pos[0];
             int height = pos[3] - pos[1];
@@ -75,9 +74,9 @@ public class ChoiceGridView extends SquareGridView {
             addView(charImage);
         }
 
-        for (Pair<String, Double> choice : squareChar.getAllChoices()){
+        for (Pair<String, Double> choice : squareChar.getAllChoices()) {
             TextView kanjiText = new TextView(mContext);
-            kanjiText.setWidth(GakuTools.dpToPx(mContext, 90));
+            kanjiText.setWidth(Tools.dpToPx(mContext, 90));
             kanjiText.setTextSize(60);
             kanjiText.setText(choice.getFirst());
             kanjiText.setBackgroundResource(R.drawable.bg_solid_border_0_white_black);
@@ -89,30 +88,28 @@ public class ChoiceGridView extends SquareGridView {
         setY(e.getRawY());
     }
 
-    public void onKanjiViewScroll(MotionEvent e1, MotionEvent e2)
-    {
-        if (mKanjiChoices == null){
+    public void onKanjiViewScroll(MotionEvent e1, MotionEvent e2) {
+        if (mKanjiChoices == null) {
             return;
         }
 
-        for (TextView k : mKanjiChoices){
-            if (checkForSelection(k, e2)){
+        for (TextView k : mKanjiChoices) {
+            if (checkForSelection(k, e2)) {
                 k.setBackgroundResource(R.drawable.bg_solid_border_0_blue_black);
-            }
-            else {
+            } else {
                 k.setBackgroundResource(R.drawable.bg_solid_border_0_white_black);
             }
         }
     }
 
-    public void onKanjiViewScrollEnd(SquareCharOcr squareChar, MotionEvent e){
+    public void onKanjiViewScrollEnd(SquareCharOcr squareChar, MotionEvent e) {
 
-        if (mKanjiChoices == null){
+        if (mKanjiChoices == null) {
             return;
         }
 
-        for (TextView k : mKanjiChoices){
-            if (checkForSelection(k, e)){
+        for (TextView k : mKanjiChoices) {
+            if (checkForSelection(k, e)) {
                 squareChar.setChar(k.getText().toString());
             }
         }
@@ -121,21 +118,16 @@ public class ChoiceGridView extends SquareGridView {
         mKanjiChoices = null;
     }
 
-    private boolean checkForSelection(TextView kanjiView, MotionEvent e){
+    private boolean checkForSelection(TextView kanjiView, MotionEvent e) {
 
         int[] pos = new int[2];
         kanjiView.getLocationInWindow(pos);
 
         if (pos[0] < e.getRawX() && e.getRawX() < pos[0] + kanjiView.getWidth() &&
-            pos[1] < e.getRawY() && e.getRawY() < pos[1] + kanjiView.getHeight()){
+                pos[1] < e.getRawY() && e.getRawY() < pos[1] + kanjiView.getHeight()) {
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
 }
-
-
-
-

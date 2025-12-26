@@ -8,6 +8,3 @@ data class JmSearchResult(
         val deinfInfo: DeinflectionInfo,
         val word: String
 )
-
-
-

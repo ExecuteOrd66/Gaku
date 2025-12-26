@@ -65,7 +65,3 @@ public class Kd2DatabaseHelper extends DatabaseHelper {
         return getDao(clazz);
     }
 }
-
-
-
-

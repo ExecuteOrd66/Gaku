@@ -47,7 +47,3 @@ public class JmLsource {
         return ls_wasei;
     }
 }
-
-
-
-

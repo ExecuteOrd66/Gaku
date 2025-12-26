@@ -27,6 +27,3 @@ public class Kd2Variant {
         text = CommonParser.parseString(parser);
     }
 }
-
-
-

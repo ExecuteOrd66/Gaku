@@ -136,7 +136,3 @@ open class SquareGridView : ViewGroup
         private val TAG = SquareGridView::class.java.name
     }
 }
-
-
-
-

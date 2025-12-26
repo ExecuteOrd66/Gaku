@@ -21,7 +21,7 @@ class FeedbackDialogFragment : DialogFragment()
             val builder = AlertDialog.Builder(it)
 
             builder.setTitle("Thanks for your feedback!")
-                    .setMessage("Do you have anything you wish to say to the developer about Gaku? Bugs, feature requests, annoyances, anything goes! (currently the developer does not exist)")
+                    .setMessage("Do you have anything you wish to say to the developer about Gaku? Bugs, feature requests, annoyances, anything goes!")
                     .setPositiveButton("SEND EMAIL")
                     {
                         _, _ ->
@@ -29,7 +29,7 @@ class FeedbackDialogFragment : DialogFragment()
                             val emailIntent = Intent(android.content.Intent.ACTION_SENDTO)
                             emailIntent.type = "text/plain"
                             emailIntent.data = Uri.parse("mailto:")
-                            emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf("example@gmail.com"))
+                            emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf("0xbad1d3a5@gmail.com"))
                             emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Gaku Feedback - ${android.os.Build.BRAND + " " + android.os.Build.MODEL}")
 
                             startActivity(Intent.createChooser(emailIntent, "Send e-mail using..."))
@@ -47,6 +47,3 @@ class FeedbackDialogFragment : DialogFragment()
         } ?: throw IllegalStateException("Activity cannot be null")
     }
 }
-
-
-

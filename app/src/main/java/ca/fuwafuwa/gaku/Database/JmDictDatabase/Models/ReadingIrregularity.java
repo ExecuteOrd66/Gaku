@@ -45,7 +45,3 @@ public class ReadingIrregularity {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

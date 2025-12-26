@@ -45,7 +45,3 @@ public class MeaningAntonym {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

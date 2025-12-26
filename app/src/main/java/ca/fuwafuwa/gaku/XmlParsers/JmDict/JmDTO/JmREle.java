@@ -119,7 +119,3 @@ public class JmREle {
         return this.re_pri;
     }
 }
-
-
-
-

@@ -8,7 +8,3 @@ public enum ChoiceType {
     DELETE,
     NONE
 }
-
-
-
-

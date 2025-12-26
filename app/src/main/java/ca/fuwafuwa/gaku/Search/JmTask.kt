@@ -196,7 +196,3 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
         return lowestPriority
     }
 }
-
-
-
-

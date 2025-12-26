@@ -180,7 +180,3 @@ class KanjiGridView : SquareGridView, IRecalculateKanjiViews
         private val TAG = KanjiGridView::class.java.name
     }
 }
-
-
-
-

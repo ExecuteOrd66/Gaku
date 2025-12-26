@@ -35,7 +35,3 @@ public class Kd2Meaning {
         return text;
     }
 }
-
-
-
-

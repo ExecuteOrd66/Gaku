@@ -45,7 +45,3 @@ public class MeaningKanjiRestriction {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

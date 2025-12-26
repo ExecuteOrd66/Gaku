@@ -7,7 +7,3 @@ package ca.fuwafuwa.gaku.Interfaces;
 public interface Stoppable {
     void stop();
 }
-
-
-
-

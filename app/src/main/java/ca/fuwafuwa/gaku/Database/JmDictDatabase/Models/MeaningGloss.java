@@ -69,7 +69,3 @@ public class MeaningGloss {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

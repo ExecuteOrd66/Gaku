@@ -65,7 +65,3 @@ public class JmEntry {
         return this.sense;
     }
 }
-
-
-
-

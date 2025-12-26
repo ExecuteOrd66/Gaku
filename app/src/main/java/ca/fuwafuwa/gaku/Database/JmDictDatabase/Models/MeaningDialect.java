@@ -45,7 +45,3 @@ public class MeaningDialect {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

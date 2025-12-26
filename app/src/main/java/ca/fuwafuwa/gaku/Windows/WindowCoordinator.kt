@@ -21,7 +21,8 @@ class WindowCoordinator(private val context: Context)
             WINDOW_CAPTURE to fun(): Window { return CaptureWindow(context, this) },
             WINDOW_INSTANT_KANJI to fun(): Window { return InstantKanjiWindow(context, this) },
             //WINDOW_HISTORY to fun(): Window { return HistoryWindow(context, this) },
-            WINDOW_KANJI_CHOICE to fun(): Window { return KanjiChoiceWindow(context, this) }
+            WINDOW_KANJI_CHOICE to fun(): Window { return KanjiChoiceWindow(context, this) },
+            WINDOW_WORD_DETAIL to fun(): Window { return WordDetailWindow(context, this) }
     )
 
     fun getWindow(key: String) : Window
@@ -72,6 +73,3 @@ class WindowCoordinator(private val context: Context)
         windows.forEach { it.second.stop() }
     }
 }
-
-
-

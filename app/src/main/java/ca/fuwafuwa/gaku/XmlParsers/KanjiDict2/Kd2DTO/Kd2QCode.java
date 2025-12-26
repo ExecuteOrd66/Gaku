@@ -29,7 +29,3 @@ public class Kd2QCode {
         text = CommonParser.parseString(parser);
     }
 }
-
-
-
-

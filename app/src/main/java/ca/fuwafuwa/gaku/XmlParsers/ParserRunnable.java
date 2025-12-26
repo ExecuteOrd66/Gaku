@@ -78,7 +78,3 @@ public class ParserRunnable implements Runnable {
         Log.d(TAG, String.format("FINISHED DICT, TOOK %d", System.currentTimeMillis() - startTime));
     }
 }
-
-
-
-

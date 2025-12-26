@@ -30,7 +30,7 @@ public class Entry {
     @ForeignCollectionField()
     private ForeignCollection<Meaning> meanings;
 
-    public Entry(){
+    public Entry() {
     }
 
     public Integer getId() {
@@ -72,8 +72,10 @@ public class Entry {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
         Entry entry1 = (Entry) o;
 
@@ -85,7 +87,3 @@ public class Entry {
         return id.hashCode();
     }
 }
-
-
-
-

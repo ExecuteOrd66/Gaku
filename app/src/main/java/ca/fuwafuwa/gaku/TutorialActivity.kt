@@ -52,6 +52,3 @@ class TutorialActivity : AppCompatActivity()
         private val TAG = TutorialActivity::class.java.name
     }
 }
-
-
-

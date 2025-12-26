@@ -66,7 +66,3 @@ public class Kanji {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

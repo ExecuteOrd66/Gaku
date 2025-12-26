@@ -178,6 +178,3 @@ class PosMap {
         }
     }
 }
-
-
-

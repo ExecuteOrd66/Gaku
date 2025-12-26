@@ -30,6 +30,3 @@ class SearchInfo(val squareChar: ISquareChar)
 
     val index: Int get() = squareChar.index
 }
-
-
-

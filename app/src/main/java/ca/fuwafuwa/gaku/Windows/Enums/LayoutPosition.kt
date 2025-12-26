@@ -6,6 +6,3 @@ enum class LayoutPosition {
     LEFT,
     RIGHT
 }
-
-
-

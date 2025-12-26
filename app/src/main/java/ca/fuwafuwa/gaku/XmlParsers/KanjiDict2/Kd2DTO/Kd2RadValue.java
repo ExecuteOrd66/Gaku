@@ -28,7 +28,3 @@ public class Kd2RadValue {
         text = CommonParser.parseString(parser);
     }
 }
-
-
-
-

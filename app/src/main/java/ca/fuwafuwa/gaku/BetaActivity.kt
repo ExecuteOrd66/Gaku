@@ -28,7 +28,3 @@ class BetaActivity : AppCompatActivity()
         }
     }
 }
-
-
-
-

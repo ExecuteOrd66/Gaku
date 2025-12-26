@@ -87,6 +87,3 @@ public class Kd2Character {
         return reading_meaning;
     }
 }
-
-
-

@@ -45,7 +45,3 @@ public class ReadingRestriction {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

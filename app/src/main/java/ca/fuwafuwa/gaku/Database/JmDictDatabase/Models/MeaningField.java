@@ -45,7 +45,3 @@ public class MeaningField {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

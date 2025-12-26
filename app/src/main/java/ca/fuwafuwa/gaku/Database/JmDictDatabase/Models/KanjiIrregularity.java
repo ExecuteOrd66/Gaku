@@ -45,7 +45,3 @@ public class KanjiIrregularity {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

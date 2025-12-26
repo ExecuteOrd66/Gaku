@@ -56,7 +56,3 @@ public class Kd2Misc {
         parser.require(XmlPullParser.END_TAG, null, XMLTAG);
     }
 }
-
-
-
-

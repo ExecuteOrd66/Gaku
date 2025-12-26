@@ -50,6 +50,3 @@ class TutorialExplainDialogFragment : DialogFragment()
         }
     }
 }
-
-
-

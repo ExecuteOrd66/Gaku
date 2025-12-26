@@ -45,7 +45,3 @@ public class MeaningAdditionalInfo {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

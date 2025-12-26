@@ -8,7 +8,3 @@ public interface IDatabaseHelper
 {
     <T> Dao<T, Integer> getDbDao(Class clazz) throws SQLException;
 }
-
-
-
-

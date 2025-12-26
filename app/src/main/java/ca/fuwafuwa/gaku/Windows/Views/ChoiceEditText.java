@@ -96,7 +96,3 @@ public class ChoiceEditText extends EditText
         return super.onKeyPreIme(keyCode, event);
     }
 }
-
-
-
-

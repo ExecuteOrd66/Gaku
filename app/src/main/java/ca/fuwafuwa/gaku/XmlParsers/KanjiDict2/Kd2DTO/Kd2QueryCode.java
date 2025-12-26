@@ -35,7 +35,3 @@ public class Kd2QueryCode {
         parser.require(XmlPullParser.END_TAG, null, XMLTAG);
     }
 }
-
-
-
-

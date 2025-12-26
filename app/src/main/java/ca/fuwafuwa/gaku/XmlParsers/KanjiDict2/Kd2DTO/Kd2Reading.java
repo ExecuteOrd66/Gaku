@@ -52,7 +52,3 @@ public class Kd2Reading {
         return text;
     }
 }
-
-
-
-

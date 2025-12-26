@@ -317,21 +317,11 @@ class KanjiChoiceWindow(context: Context, windowCoordinator: WindowCoordinator) 
         val pos = squareChar.bitmapPos
         val dp10 = dpToPx(context, 10)
         val orig = squareChar.displayData.bitmap
-
-        val cropX = pos[0].coerceIn(0, orig.width)
-        val cropY = pos[1].coerceIn(0, orig.height)
-
-        val cropRight = pos[2].coerceIn(0, orig.width)
-        val cropBottom = pos[3].coerceIn(0, orig.height)
-
-        val width = cropRight - cropX
-        val height = cropBottom - cropY
-
-        if (width <= 0 || height <= 0) {
-            return
-        }
-
-        val bitmapChar = Bitmap.createBitmap(orig, cropX, cropY, width, height)
+        var width = pos[2] - pos[0]
+        var height = pos[3] - pos[1]
+        width = if (width <= 0) 1 else width
+        height = if (height <= 0) 1 else height
+        val bitmapChar = Bitmap.createBitmap(orig, pos[0], pos[1], width, height)
         val charImage = ImageView(context)
         charImage.setPadding(dp10, dp10, dp10, dp10)
         charImage.layoutParams = LinearLayout.LayoutParams(kanjiWidth, kanjiHeight)
@@ -366,11 +356,7 @@ class KanjiChoiceWindow(context: Context, windowCoordinator: WindowCoordinator) 
         return false
     }
 
-    override fun onDown(e: MotionEvent): Boolean {
-        return false
-    }
-
-    override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean
+    override fun onScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean
     {
         return false
     }

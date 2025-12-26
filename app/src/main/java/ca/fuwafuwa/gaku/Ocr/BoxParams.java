@@ -21,7 +21,3 @@ public final class BoxParams {
         return String.format("X:%d Y:%d (%dx%d)", x, y, width, height);
     }
 }
-
-
-
-

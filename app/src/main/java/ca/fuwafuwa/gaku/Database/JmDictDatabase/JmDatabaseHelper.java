@@ -50,14 +50,15 @@ public class JmDatabaseHelper extends DatabaseHelper {
 
     private Context mContext;
 
-    private JmDatabaseHelper(Context context){
-        super(context, String.format("%s/%s", context.getFilesDir().getAbsolutePath(), DATABASE_NAME), null, DATABASE_VERSION);
+    private JmDatabaseHelper(Context context) {
+        super(context, String.format("%s/%s", context.getFilesDir().getAbsolutePath(), DATABASE_NAME), null,
+                DATABASE_VERSION);
         Log.d(TAG, "JmDatabaseHelper Constructor");
         mContext = context;
     }
 
-    public static synchronized JmDatabaseHelper instance(Context context){
-        if (instance == null){
+    public static synchronized JmDatabaseHelper instance(Context context) {
+        if (instance == null) {
             instance = new JmDatabaseHelper(context);
         }
         return instance;
@@ -75,11 +76,13 @@ public class JmDatabaseHelper extends DatabaseHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
-        // Can't use onUpgrade, because getDbDao() will sometimes run first due to being on another thread, opening a DB connection and causing issues when we try to delete the DB
+        // Can't use onUpgrade, because getDbDao() will sometimes run first due to being
+        // on another thread, opening a DB connection and causing issues when we try to
+        // delete the DB
         throw new NotImplementedException();
     }
 
-    public void deleteDatabase(){
+    public void deleteDatabase() {
         mContext.deleteDatabase(String.format("%s/%s", mContext.getFilesDir().getAbsolutePath(), DATABASE_NAME));
     }
 
@@ -87,7 +90,3 @@ public class JmDatabaseHelper extends DatabaseHelper {
         return getDao(clazz);
     }
 }
-
-
-
-

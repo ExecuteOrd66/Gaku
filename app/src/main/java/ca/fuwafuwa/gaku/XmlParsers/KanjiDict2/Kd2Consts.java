@@ -57,7 +57,3 @@ public class Kd2Consts {
     public static final String R_TYPE_JA_ON = "ja_on";
     public static final String R_TYPE_JA_KUN = "ja_kun";
 }
-
-
-
-

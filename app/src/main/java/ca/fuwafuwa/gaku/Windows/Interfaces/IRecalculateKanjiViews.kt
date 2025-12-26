@@ -4,6 +4,3 @@ interface IRecalculateKanjiViews
 {
     fun recalculateKanjiViews()
 }
-
-
-

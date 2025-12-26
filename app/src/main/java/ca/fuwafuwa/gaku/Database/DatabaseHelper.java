@@ -20,6 +20,3 @@ public abstract class DatabaseHelper extends OrmLiteSqliteOpenHelper implements 
 
     public abstract void deleteDatabase();
 }
-
-
-

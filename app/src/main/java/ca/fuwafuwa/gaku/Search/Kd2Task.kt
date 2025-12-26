@@ -47,7 +47,3 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchKd2TaskDone:
         mSearchKd2TaskDone.kd2TaskCallback(result, mSearchInfo)
     }
 }
-
-
-
-

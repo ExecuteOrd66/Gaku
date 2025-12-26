@@ -45,7 +45,3 @@ public class KanjiPriority {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

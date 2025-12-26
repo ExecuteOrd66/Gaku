@@ -94,6 +94,3 @@ class DisplayDataOcr(val bitmap: Bitmap,
                      squareChars: List<SquareCharOcr>) : DisplayData(squareChars)
 {
 }
-
-
-

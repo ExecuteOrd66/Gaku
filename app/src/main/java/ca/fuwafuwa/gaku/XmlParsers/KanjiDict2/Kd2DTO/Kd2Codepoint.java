@@ -35,7 +35,3 @@ public class Kd2Codepoint {
         parser.require(XmlPullParser.END_TAG, null, XMLTAG);
     }
 }
-
-
-
-

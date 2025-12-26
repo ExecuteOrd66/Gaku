@@ -83,7 +83,3 @@ public class Reading {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

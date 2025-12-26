@@ -81,7 +81,3 @@ public class MeaningLoanSource {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

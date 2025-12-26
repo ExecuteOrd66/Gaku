@@ -11,7 +11,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
@@ -135,8 +134,6 @@ public class MainService extends Service implements Stoppable {
             | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
     private static final int NOTIFICATION_ID = 1;
 
-    private final Object mScreenshotLock = new Object();
-
     private IntentFilter mIntentFilter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
     private ScreenOffReceiver mScreenOffReceiver = new ScreenOffReceiver();
 
@@ -223,12 +220,13 @@ public class MainService extends Service implements Stoppable {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
-        if (mWindowCoordinator.hasWindow(Constants.WINDOW_CAPTURE) && mMediaProjection != null) {
+        if (mWindowCoordinator.hasWindow(Constants.WINDOW_CAPTURE)) {
             final int rotation = mDisplay.getRotation();
+
             if (rotation != mRotation) {
-                Log.d(TAG, "Orientation changed. Re-creating Virtual Display.");
+                Log.d(TAG, "Orientation changed");
                 mRotation = rotation;
-                createVirtualDisplay(); // This will now use the new rotation
+                createVirtualDisplay();
                 mWindowCoordinator.reinitAllWindows();
             }
         }
@@ -284,54 +282,14 @@ public class MainService extends Service implements Stoppable {
         return mHandler;
     }
 
-    public Bitmap getScreenshotBitmap() {
-        synchronized (mScreenshotLock) {
-            if (mImageReader == null) {
-                return null;
-            }
-
-            try {
-                // Try to get the latest image
-                Image image = mImageReader.acquireLatestImage();
-                if (image == null) {
-                    long startTime = System.nanoTime();
-                    while (image == null && System.nanoTime() < startTime + 2000000000) {
-                        try {
-                            mScreenshotLock.wait(20);
-                        } catch (InterruptedException e) {
-                            return null;
-                        }
-                        if (mImageReader == null)
-                            return null;
-                        image = mImageReader.acquireLatestImage();
-                    }
-                }
-
-                if (image != null) {
-                    try {
-                        return convertImageToBitmap(image);
-                    } finally {
-                        image.close();
-                    }
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error getting screenshot", e);
-            }
-            return null;
+    public Image getScreenshot() throws InterruptedException {
+        long startTime = System.nanoTime();
+        Image image = mImageReader.acquireLatestImage();
+        while (image == null && System.nanoTime() < startTime + 2000000000) {
+            Thread.sleep(20);
+            image = mImageReader.acquireLatestImage();
         }
-    }
-
-    private Bitmap convertImageToBitmap(Image image) {
-        Image.Plane[] planes = image.getPlanes();
-        java.nio.ByteBuffer buffer = planes[0].getBuffer();
-        int pixelStride = planes[0].getPixelStride();
-        int rowStride = planes[0].getRowStride();
-        int rowPadding = rowStride - pixelStride * image.getWidth();
-
-        Bitmap bitmap = Bitmap.createBitmap(image.getWidth() + rowPadding / pixelStride, image.getHeight(),
-                Bitmap.Config.ARGB_8888);
-        bitmap.copyPixelsFromBuffer(buffer);
-        return bitmap;
+        return image;
     }
 
     private Notification getNotification() {
@@ -407,37 +365,17 @@ public class MainService extends Service implements Stoppable {
 
         // start capture reader
         Log.d(TAG, String.format("Starting Projection: %dx%d", mRealDisplaySize.x, mRealDisplaySize.y));
-
-        synchronized (mScreenshotLock) {
-            if (mVirtualDisplay == null) {
-                mImageReader = ImageReader.newInstance(mRealDisplaySize.x, mRealDisplaySize.y, PixelFormat.RGBA_8888,
-                        2);
-                mVirtualDisplay = mMediaProjection.createVirtualDisplay(getClass().getName(), mRealDisplaySize.x,
-                        mRealDisplaySize.y, mDensity, VIRTUAL_DISPLAY_FLAGS, mImageReader.getSurface(), null, mHandler);
-            } else {
-                ImageReader newImageReader = ImageReader.newInstance(mRealDisplaySize.x, mRealDisplaySize.y,
-                        PixelFormat.RGBA_8888, 2);
-                mVirtualDisplay.resize(mRealDisplaySize.x, mRealDisplaySize.y, mDensity);
-                mVirtualDisplay.setSurface(newImageReader.getSurface());
-                if (mImageReader != null) {
-                    mImageReader.close();
-                }
-                mImageReader = newImageReader;
-            }
+        if (mVirtualDisplay != null) {
+            mVirtualDisplay.release();
         }
-    }
-
-    private void stopVirtualDisplay() {
-        synchronized (mScreenshotLock) {
-            if (mVirtualDisplay != null) {
-                mVirtualDisplay.release();
-                mVirtualDisplay = null;
-            }
-            if (mImageReader != null) {
-                mImageReader.close();
-                mImageReader = null;
-            }
-        }
+        mImageReader = ImageReader.newInstance(mRealDisplaySize.x, mRealDisplaySize.y, PixelFormat.RGBA_8888, 2); // TODO:
+                                                                                                                  // Something
+                                                                                                                  // causing
+                                                                                                                  // a
+                                                                                                                  // NRE
+                                                                                                                  // here
+        mVirtualDisplay = mMediaProjection.createVirtualDisplay(getClass().getName(), mRealDisplaySize.x,
+                mRealDisplaySize.y, mDensity, VIRTUAL_DISPLAY_FLAGS, mImageReader.getSurface(), null, mHandler);
     }
 
     @RequiresApi(Build.VERSION_CODES.O)

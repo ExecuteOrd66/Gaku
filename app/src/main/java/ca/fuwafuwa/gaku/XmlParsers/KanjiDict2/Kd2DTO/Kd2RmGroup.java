@@ -47,7 +47,3 @@ public class Kd2RmGroup {
         return meanings;
     }
 }
-
-
-
-

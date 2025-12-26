@@ -38,6 +38,3 @@ class DeinflectionInfo(
         var word: String,
         var type: Int,
         var reason: String)
-
-
-

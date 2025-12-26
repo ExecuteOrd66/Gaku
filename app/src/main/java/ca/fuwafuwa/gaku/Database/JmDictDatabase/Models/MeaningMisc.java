@@ -45,7 +45,3 @@ public class MeaningMisc {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

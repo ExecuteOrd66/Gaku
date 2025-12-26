@@ -44,6 +44,3 @@ public class Kd2ReadingMeaning {
         return rmgroups;
     }
 }
-
-
-

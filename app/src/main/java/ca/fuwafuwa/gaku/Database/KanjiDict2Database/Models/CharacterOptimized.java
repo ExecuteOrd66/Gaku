@@ -62,7 +62,3 @@ public class CharacterOptimized {
         this.meaning = meaning;
     }
 }
-
-
-
-

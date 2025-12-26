@@ -52,7 +52,3 @@ public class WindowView extends RelativeLayout
         return mWindowListener.onTouch(e);
     }
 }
-
-
-
-

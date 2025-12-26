@@ -45,7 +45,3 @@ public class ReadingPriority {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

@@ -45,7 +45,3 @@ public class MeaningReadingRestriction {
         return GakuTools.toJson(this);
     }
 }
-
-
-
-

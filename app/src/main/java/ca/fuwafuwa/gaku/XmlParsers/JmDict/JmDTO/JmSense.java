@@ -209,7 +209,3 @@ public class JmSense {
         return this.example;
     }
 }
-
-
-
-

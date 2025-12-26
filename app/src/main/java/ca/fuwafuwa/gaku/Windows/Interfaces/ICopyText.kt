@@ -4,6 +4,3 @@ interface ICopyText
 {
     fun copyText()
 }
-
-
-

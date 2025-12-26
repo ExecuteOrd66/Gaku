@@ -8,7 +8,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
-import ca.fuwafuwa.gaku.GakuTools;
+import ca.fuwafuwa.gaku.Tools;
 import ca.fuwafuwa.gaku.R;
 import ca.fuwafuwa.gaku.Windows.Enums.ChoiceType;
 
@@ -42,19 +42,17 @@ public class ChoiceIconView extends ImageView {
         Init(context);
     }
 
-    private void Init(Context context){
-        setLayoutParams(new RelativeLayout.LayoutParams(GakuTools.dpToPx(context, 35), GakuTools.dpToPx(context, 35)));
+    private void Init(Context context) {
+        setLayoutParams(new RelativeLayout.LayoutParams(Tools.dpToPx(context, 35), Tools.dpToPx(context, 35)));
     }
 
-    public void onKanjiViewScrollStart(int statusBarHeight, KanjiCharacterView kanjiView, MotionEvent e)
-    {
+    public void onKanjiViewScrollStart(int statusBarHeight, KanjiCharacterView kanjiView, MotionEvent e) {
         mStatusBarHeight = statusBarHeight;
         setVisibility(View.VISIBLE);
     }
 
-    public void onKanjiViewScroll(MotionEvent e1, MotionEvent e2)
-    {
-        switch (getChoiceType(e2)){
+    public void onKanjiViewScroll(MotionEvent e1, MotionEvent e2) {
+        switch (getChoiceType(e2)) {
             case EDIT:
                 setImageResource(R.drawable.icon_edit);
                 break;
@@ -67,23 +65,22 @@ public class ChoiceIconView extends ImageView {
         }
     }
 
-    public ChoiceType onKanjiViewScrollEnd(MotionEvent e){
+    public ChoiceType onKanjiViewScrollEnd(MotionEvent e) {
 
         setVisibility(INVISIBLE);
         return getChoiceType(e);
     }
 
-    private ChoiceType getChoiceType(MotionEvent e){
+    private ChoiceType getChoiceType(MotionEvent e) {
 
         int[] pos = new int[2];
         getLocationInWindow(pos);
 
-        if (e.getRawY() < pos[1] + mStatusBarHeight){
-            int mid =  pos[0] + getWidth() / 2;
-            if (e.getRawX() < mid){
+        if (e.getRawY() < pos[1] + mStatusBarHeight) {
+            int mid = pos[0] + getWidth() / 2;
+            if (e.getRawX() < mid) {
                 return ChoiceType.EDIT;
-            }
-            else {
+            } else {
                 return ChoiceType.DELETE;
             }
         }
@@ -91,7 +88,3 @@ public class ChoiceIconView extends ImageView {
         return ChoiceType.NONE;
     }
 }
-
-
-
-

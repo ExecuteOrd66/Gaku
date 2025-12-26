@@ -62,7 +62,3 @@ public class JmGloss {
         return isEnglish;
     }
 }
-
-
-
-

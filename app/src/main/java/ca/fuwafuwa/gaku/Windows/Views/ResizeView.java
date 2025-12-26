@@ -106,7 +106,3 @@ public class ResizeView extends LinearLayout implements GestureDetector.OnGestur
         return false;
     }
 }
-
-
-
-

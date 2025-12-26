@@ -114,7 +114,3 @@ enum class ChoiceCertainty
     CERTAIN,
     UNCERTAIN
 }
-
-
-
-
