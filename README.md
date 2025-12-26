@@ -1,6 +1,4 @@
-# Gaku (Picture-based Japanese OCR)
-
-**Gaku** is a fork of [Kaku](https://github.com/0xbad1d3a5/Kaku) android application. I do not intend to maintain this project, so feel free to contribute however you see fit. Note that the codebase was largely vibe-coded to produce a minimum-viable-product, as I am not an android developer. I'm sorry if the changes cause any future maintainers headache.
+**Gaku** (学 - がく: learning; scholarship; study; erudition; knowledge; education) is a fork of [Kaku](https://github.com/0xbad1d3a5/Kaku) android application. I do not intend to maintain this project, so feel free to contribute however you see fit. Note that the codebase was largely vibe-coded to produce a minimum-viable-product, as I am not an android developer. I'm sorry if the changes cause any future maintainers headache.
 
 
 ### Why this fork?
