@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory android:title="Jiten API Settings">
+        <EditTextPreference
+            android:key="jiten_api_url"
+            android:title="API Base URL"
+            android:summary="The URL of the Jiten.moe API"
+            android:defaultValue="https://api.jiten.moe" />
+
+        <EditTextPreference
+            android:key="jiten_api_key"
+            android:title="API Key / Token"
+            android:summary="Your Jiten auth token"
+            android:defaultValue="" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Database Management">
+        <Preference
+            android:key="db_reinit"
+            android:title="Re-initialize Databases"
+            android:summary="Recopy dictionary files from assets (fixes missing files)" />
+
+        <Preference
+            android:key="manage_dicts"
+            android:title="Manage Dictionaries"
+            android:summary="Import and manage Yomitan (Yomichan) zip dictionaries">
+            <intent android:action="android.intent.action.VIEW"
+                    android:targetPackage="ca.fuwafuwa.gaku"
+                    android:targetClass="ca.fuwafuwa.gaku.Settings.DictionaryActivity" />
+        </Preference>
+        
+        <Preference
+            android:key="db_clear_user"
+            android:title="Clear User Progress"
+            android:summary="Reset all learned/unknown word statuses locally" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="OCR Settings">
+        <ListPreference
+            android:key="TextDirection"
+            android:title="Text Direction"
+            android:summary="Preferred reading direction for OCR"
+            android:entries="@array/text_direction_entries"
+            android:entryValues="@array/text_direction_values"
+            android:defaultValue="AUTO" />
+
+        <SwitchPreferenceCompat
+            android:key="InstantMode"
+            android:title="Instant Mode"
+            android:summary="Perform OCR immediately on selection"
+            android:defaultValue="true" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -23,14 +23,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:text="学"
+            android:text="画"
             android:textColor="@color/PrimaryDark"
             android:textSize="200dp" />
 
         <TextView
             android:layout_width="300dp"
             android:layout_height="wrap_content"
-            android:text="Enjoy Gaku!"
+            android:text="Enjoy Kaku!"
             android:textColor="@color/PrimaryDark"
             android:textSize="32dp" />
 
@@ -44,13 +44,12 @@
             android:textSize="20dp" />
 
         <Button
-            android:id="@+id/tutorial_end_start_gaku"
+            android:id="@+id/tutorial_end_start_kaku"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="30dp"
-            android:text="Start Gaku"/>
+            android:text="Start Kaku"/>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

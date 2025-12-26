@@ -6,4 +6,3 @@
         android:color="@color/PrimaryDark"/>
     <solid android:color="@android:color/white"/>
 </shape>
-

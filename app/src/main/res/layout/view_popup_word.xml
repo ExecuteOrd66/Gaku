@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="300dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_solid_border_0_nil_white"
+    android:padding="12dp"
+    android:elevation="12dp">
+
+    <!-- Header Area -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <ImageButton
+            android:id="@+id/btn_close_popup"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:tint="#e74c3c"
+            android:padding="2dp"
+            android:scaleType="centerInside"
+            android:contentDescription="Close" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="bottom"
+            android:layout_toEndOf="@id/btn_close_popup"
+            android:layout_marginStart="8dp">
+
+            <TextView
+                android:id="@+id/popup_word"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="言葉"
+                android:textSize="24sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#2c3e50" />
+
+            <TextView
+                android:id="@+id/popup_tag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="KNOWN"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:textSize="10sp"
+                android:letterSpacing="0.1"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/bg_solid_border_corners_0_white_black_round" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#f5f5f5"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Pitch Accent Visualization -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ACCENT"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:background="#9b59b6"
+            android:layout_marginEnd="8dp"/>
+
+        <ca.fuwafuwa.gaku.Windows.Views.PitchAccentGraphView
+            android:id="@+id/popup_pitch_graph"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#00000000"/>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#f5f5f5"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Definition Area -->
+    <TextView
+        android:id="@+id/popup_def"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Definition text goes here..."
+        android:textSize="14sp"
+        android:textColor="#34495e"
+        android:lineSpacingMultiplier="1.1"/>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btn_mark_known"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Known"
+            style="?android:attr/borderlessButtonStyle"
+            android:textSize="11sp"
+            android:textColor="#2ecc71"
+            android:textAllCaps="false"/>
+
+        <Button
+            android:id="@+id/btn_mark_mature"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Mature"
+            style="?android:attr/borderlessButtonStyle"
+            android:textSize="11sp"
+            android:textColor="#9b59b6"
+            android:textAllCaps="false"/>
+
+        <Button
+            android:id="@+id/btn_add_anki"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Anki"
+            style="?android:attr/borderlessButtonStyle"
+            android:textSize="11sp"
+            android:textColor="#3498db"
+            android:textAllCaps="false"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/popup_freq"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Freq: Top 100"
+        android:textSize="9sp"
+        android:textColor="#95a5a6"
+        android:background="#f8f9fa"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="1dp"
+        android:paddingBottom="1dp"
+        android:layout_marginTop="4dp"
+        android:layout_gravity="end"/>
+
+</LinearLayout>
