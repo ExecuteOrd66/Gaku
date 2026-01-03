@@ -96,31 +96,7 @@ public class WordDetailWindow extends Window {
             StringBuilder sb = new StringBuilder();
             List<String> meanings = word.getMeanings();
             for (int i = 0; i < meanings.size(); i++) {
-                String m = meanings.get(i);
-                if (m.startsWith("[") && m.contains("] ")) {
-                    // This is a Yomitan result: [reading] ["meaning1", "meaning2"]
-                    int bracketIndex = m.indexOf("] ");
-                    String readingPref = m.substring(0, bracketIndex + 1);
-                    String jsonMeanings = m.substring(bracketIndex + 2);
-                    sb.append(readingPref).append(" ");
-                    try {
-                        com.google.gson.JsonElement je = com.google.gson.JsonParser.parseString(jsonMeanings);
-                        if (je.isJsonArray()) {
-                            com.google.gson.JsonArray ja = je.getAsJsonArray();
-                            for (int j = 0; j < ja.size(); j++) {
-                                sb.append(ja.get(j).getAsString());
-                                if (j < ja.size() - 1)
-                                    sb.append(", ");
-                            }
-                        } else {
-                            sb.append(jsonMeanings);
-                        }
-                    } catch (Exception e) {
-                        sb.append(jsonMeanings);
-                    }
-                } else {
-                    sb.append(m);
-                }
+                sb.append(meanings.get(i));
                 if (i < meanings.size() - 1) {
                     sb.append("\n\n");
                 }

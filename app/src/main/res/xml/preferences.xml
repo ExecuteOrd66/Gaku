@@ -22,14 +22,6 @@
             android:title="Re-initialize Databases"
             android:summary="Recopy dictionary files from assets (fixes missing files)" />
 
-        <Preference
-            android:key="manage_dicts"
-            android:title="Manage Dictionaries"
-            android:summary="Import and manage Yomitan (Yomichan) zip dictionaries">
-            <intent android:action="android.intent.action.VIEW"
-                    android:targetPackage="ca.fuwafuwa.gaku"
-                    android:targetClass="ca.fuwafuwa.gaku.Settings.DictionaryActivity" />
-        </Preference>
         
         <Preference
             android:key="db_clear_user"

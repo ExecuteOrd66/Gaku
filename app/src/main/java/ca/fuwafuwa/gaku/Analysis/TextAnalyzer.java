@@ -30,7 +30,6 @@ public class TextAnalyzer {
     private Context context;
     private UserDatabaseHelper userDbHelper;
     private JmDatabaseHelper jmDbHelper;
-    private ca.fuwafuwa.gaku.Database.Yomitan.YomitanDatabaseHelper yomitanDbHelper;
     private PitchAccentDatabaseHelper pitchDbHelper;
 
     public TextAnalyzer(Context context) {
@@ -39,7 +38,6 @@ public class TextAnalyzer {
         this.tokenizer = new Tokenizer();
         this.userDbHelper = UserDatabaseHelper.instance(context);
         this.jmDbHelper = JmDatabaseHelper.instance(context);
-        this.yomitanDbHelper = ca.fuwafuwa.gaku.Database.Yomitan.YomitanDatabaseHelper.getInstance(context);
         this.pitchDbHelper = PitchAccentDatabaseHelper.instance(context);
     }
 
@@ -108,7 +106,6 @@ public class TextAnalyzer {
                         .or().like("readings", "%" + reading + "%")
                         .or().like("readings", "%" + hiraganaReading + "%")
                         .queryForFirst();
-
                 if (entry != null) {
                     String meaningsStr = entry.getMeanings();
                     if (meaningsStr != null) {
@@ -118,25 +115,6 @@ public class TextAnalyzer {
                         word.setPitchPattern(entry.getReadings());
                     }
                 }
-
-                // 2b. Also look up in Yomitan DB
-                List<ca.fuwafuwa.gaku.Database.Yomitan.YomitanTerm> yomitanTerms = yomitanDbHelper.getTermDao()
-                        .queryBuilder()
-                        .where().eq("kanji", surface)
-                        .or().eq("kanji", baseForm)
-                        .or().eq("reading", reading)
-                        .query();
-
-                if (!yomitanTerms.isEmpty()) {
-                    List<String> combinedMeanings = word.getMeanings();
-                    if (combinedMeanings == null)
-                        combinedMeanings = new ArrayList<>();
-                    for (ca.fuwafuwa.gaku.Database.Yomitan.YomitanTerm yt : yomitanTerms) {
-                        combinedMeanings.add("[" + yt.getReading() + "] " + yt.getMeanings());
-                    }
-                    word.setMeanings(combinedMeanings);
-                }
-
             } catch (SQLException e) {
                 Log.e(TAG, "Failed to query dictionaries", e);
             }

@@ -73,11 +73,6 @@
             android:screenOrientation="portrait">
         </activity>
 
-        <activity
-            android:name=".Settings.DictionaryActivity"
-            android:label="Dictionary Management"
-            android:screenOrientation="portrait">
-        </activity>
 
         <activity
             android:name=".PassthroughActivity"
