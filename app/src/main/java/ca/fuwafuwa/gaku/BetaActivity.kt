@@ -20,7 +20,7 @@ class BetaActivity : AppCompatActivity()
         val emailIntent = Intent(android.content.Intent.ACTION_SENDTO)
         emailIntent.type = "text/plain"
         emailIntent.data = Uri.parse("mailto:")
-        emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf("0xbad1d3a5@gmail.com"))
+        emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf("carloosthuizen0@gmail.com"))
         emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Gaku Beta User - ${android.os.Build.BRAND + " " + android.os.Build.MODEL}")
 
         findViewById<Button>(R.id.beta_button_email).setOnClickListener {
