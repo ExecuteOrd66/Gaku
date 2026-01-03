@@ -95,11 +95,22 @@ public class WordDetailWindow extends Window {
         if (word.getMeanings() != null && !word.getMeanings().isEmpty()) {
             StringBuilder sb = new StringBuilder();
             List<String> meanings = word.getMeanings();
+            List<String> meaningPos = word.getMeaningPos();
+            String dictionary = word.getDictionary();
+
             for (int i = 0; i < meanings.size(); i++) {
-                sb.append(meanings.get(i));
-                if (i < meanings.size() - 1) {
+                if (i != 0) {
                     sb.append("\n\n");
                 }
+                sb.append(ca.fuwafuwa.gaku.LangUtils.Companion.ConvertIntToCircledNum(i + 1));
+                sb.append(" ");
+
+                if (ca.fuwafuwa.gaku.Constants.JMDICT_DATABASE_NAME.equals(dictionary) &&
+                        meaningPos != null && i < meaningPos.size() && !meaningPos.get(i).isEmpty()) {
+                    sb.append(String.format("(%s) ", meaningPos.get(i)));
+                }
+
+                sb.append(meanings.get(i));
             }
             defText.setText(sb.toString());
         } else {

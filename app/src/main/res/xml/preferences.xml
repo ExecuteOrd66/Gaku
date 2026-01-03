@@ -22,7 +22,6 @@
             android:title="Re-initialize Databases"
             android:summary="Recopy dictionary files from assets (fixes missing files)" />
 
-        
         <Preference
             android:key="db_clear_user"
             android:title="Clear User Progress"

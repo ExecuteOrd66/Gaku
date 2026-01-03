@@ -19,6 +19,8 @@ public class ParsedWord {
     private String pitchPattern;
     private List<String> meanings;
     private String pos; // Part of speech (e.g., "noun", "verb");
+    private String dictionary;
+    private List<String> meaningPos;
 
     public ParsedWord(String surface, String reading, String lemma, Rect boundingBox) {
         this.surface = surface;
@@ -73,5 +75,21 @@ public class ParsedWord {
 
     public void setPos(String pos) {
         this.pos = pos;
+    }
+
+    public String getDictionary() {
+        return dictionary;
+    }
+
+    public void setDictionary(String dictionary) {
+        this.dictionary = dictionary;
+    }
+
+    public List<String> getMeaningPos() {
+        return meaningPos;
+    }
+
+    public void setMeaningPos(List<String> meaningPos) {
+        this.meaningPos = meaningPos;
     }
 }
