@@ -20,6 +20,14 @@ public interface JitenApi {
     @POST("/user/words/sync")
     Call<SyncResponse> syncWords(@Header("Authorization") String token, @Body List<UserWord> words);
 
+    @GET("/api/vocabulary/parse")
+    Call<List<JitenDTOs.DeckWordDto>> parse(@Header("Authorization") String token,
+            @retrofit2.http.Query("text") String text);
+
+    @GET("/api/vocabulary/{wordId}/{readingIndex}")
+    Call<JitenDTOs.WordDto> getWordDetails(@Header("Authorization") String token,
+            @retrofit2.http.Path("wordId") int wordId, @retrofit2.http.Path("readingIndex") int readingIndex);
+
     class LoginRequest {
         String username;
         String password;

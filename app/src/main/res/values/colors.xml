@@ -21,9 +21,11 @@
     <color name="kana_blue">#0000CD</color>
 
     <color name="status_unknown">#3498db</color>
-    <color name="status_learning">#e67e22</color>
+    <color name="status_learning">#FFFF00</color> <!-- Young -->
     <color name="status_known">#2ecc71</color>
-    <color name="status_mature">#9b59b6</color>
+    <color name="status_mature">#00FF00</color> <!-- Mature -->
+    <color name="status_mastered">#006400</color> <!-- Mastered -->
+    <color name="status_due">#FF0000</color> <!-- Due -->
     <color name="status_dismissed">#95a5a6</color>
 </resources>
 

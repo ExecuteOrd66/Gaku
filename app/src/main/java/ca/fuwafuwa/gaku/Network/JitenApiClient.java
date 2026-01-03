@@ -193,4 +193,28 @@ public class JitenApiClient {
             Log.e(TAG, "Update local DB failed", e);
         }
     }
+
+    public List<JitenDTOs.DeckWordDto> parse(String text) throws java.io.IOException {
+        refreshSettings();
+        if (authToken == null || authToken.isEmpty()) {
+            return null;
+        }
+        retrofit2.Response<List<JitenDTOs.DeckWordDto>> response = api.parse(authToken, text).execute();
+        if (response.isSuccessful()) {
+            return response.body();
+        }
+        return null;
+    }
+
+    public JitenDTOs.WordDto getWordDetails(int wordId, int readingIndex) throws java.io.IOException {
+        refreshSettings();
+        if (authToken == null || authToken.isEmpty()) {
+            return null;
+        }
+        retrofit2.Response<JitenDTOs.WordDto> response = api.getWordDetails(authToken, wordId, readingIndex).execute();
+        if (response.isSuccessful()) {
+            return response.body();
+        }
+        return null;
+    }
 }

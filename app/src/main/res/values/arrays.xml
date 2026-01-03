@@ -10,4 +10,14 @@
         <item>HORIZONTAL</item>
         <item>VERTICAL</item>
     </string-array>
+    <string-array name="parser_backend_entries">
+        <item>Offline (Kuromoji)</item>
+        <item>Jiten.moe API</item>
+        <item>JPDB API</item>
+    </string-array>
+    <string-array name="parser_backend_values">
+        <item>offline</item>
+        <item>jiten</item>
+        <item>jpdb</item>
+    </string-array>
 </resources>

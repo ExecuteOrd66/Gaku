@@ -2,17 +2,35 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <PreferenceCategory android:title="Parsing Settings">
+        <ListPreference
+            android:key="pref_parser_backend"
+            android:title="Parsing Backend"
+            android:summary="Choose the engine used for sentence parsing"
+            android:entries="@array/parser_backend_entries"
+            android:entryValues="@array/parser_backend_values"
+            android:defaultValue="jiten" />
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="Jiten API Settings">
         <EditTextPreference
             android:key="jiten_api_url"
             android:title="API Base URL"
-            android:summary="The URL of the Jiten.moe API"
+            android:summary="The URL of the Jiten.moe API (default: https://api.jiten.moe)"
             android:defaultValue="https://api.jiten.moe" />
 
         <EditTextPreference
             android:key="jiten_api_key"
             android:title="API Key / Token"
             android:summary="Your Jiten auth token"
+            android:defaultValue="" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="JPDB API Settings">
+        <EditTextPreference
+            android:key="jpdb_api_key"
+            android:title="API Key"
+            android:summary="Your JPDB API key"
             android:defaultValue="" />
     </PreferenceCategory>
 

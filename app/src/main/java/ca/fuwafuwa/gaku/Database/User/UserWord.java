@@ -26,6 +26,8 @@ public class UserWord {
     public static final int STATUS_KNOWN = 2;
     public static final int STATUS_MATURE = 3;
     public static final int STATUS_DISMISSED = 4;
+    public static final int STATUS_DUE = 5;
+    public static final int STATUS_MASTERED = 6;
 
     public UserWord() {
         // ORMLite needs a no-arg constructor

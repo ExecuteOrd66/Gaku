@@ -38,6 +38,8 @@ public class WordOverlayView extends RelativeLayout {
     private Paint paintLearning;
     private Paint paintKnown;
     private Paint paintMature;
+    private Paint paintMastered;
+    private Paint paintDue;
     private Paint paintDismissed;
     private Paint paintTouch;
     private ca.fuwafuwa.gaku.TextDirection textDirection = ca.fuwafuwa.gaku.TextDirection.AUTO;
@@ -84,10 +86,21 @@ public class WordOverlayView extends RelativeLayout {
         paintMature.setStrokeWidth(6);
         paintMature.setStyle(Paint.Style.STROKE);
 
+        paintMastered = new Paint();
+        paintMastered.setColor(ContextCompat.getColor(getContext(), R.color.status_mastered));
+        paintMastered.setStrokeWidth(6);
+        paintMastered.setStyle(Paint.Style.STROKE);
+
+        paintDue = new Paint();
+        paintDue.setColor(ContextCompat.getColor(getContext(), R.color.status_due));
+        paintDue.setStrokeWidth(6);
+        paintDue.setStyle(Paint.Style.STROKE);
+
         paintDismissed = new Paint();
         paintDismissed.setColor(ContextCompat.getColor(getContext(), R.color.status_dismissed));
-        paintDismissed.setStrokeWidth(6);
+        paintDismissed.setStrokeWidth(0); // Invisible? Or just do not draw.
         paintDismissed.setStyle(Paint.Style.STROKE);
+        paintDismissed.setAlpha(0); // Fully transparent
         paintDismissed.setAlpha(128);
 
         paintTouch = new Paint();
@@ -198,12 +211,27 @@ public class WordOverlayView extends RelativeLayout {
                 case UserWord.STATUS_MATURE:
                     paint = paintMature;
                     break;
+                case UserWord.STATUS_MASTERED:
+                    paint = paintMastered;
+                    break;
+                case UserWord.STATUS_DUE:
+                    paint = paintDue;
+                    break;
                 case UserWord.STATUS_DISMISSED:
+                    // Blacklisted - invisible.
+                    // We can either set paint to transparent or skip drawing.
+                    // If we skip `continue` in loop, we might break logic if lines are needed for
+                    // something else.
+                    // But here it draws underline.
                     paint = paintDismissed;
                     break;
                 default:
                     paint = paintUnknown;
                     break;
+            }
+
+            if (word.getStatus() == UserWord.STATUS_DISMISSED) {
+                continue; // Do not draw line for blacklisted
             }
 
             int gap = ca.fuwafuwa.gaku.GakuTools.dpToPx(getContext(), 1);
