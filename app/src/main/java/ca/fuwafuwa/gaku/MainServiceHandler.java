@@ -6,6 +6,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 import ca.fuwafuwa.gaku.Ocr.OcrResult;
+import ca.fuwafuwa.gaku.Analysis.ParsedResult;
+import ca.fuwafuwa.gaku.Windows.CaptureWindow;
 import ca.fuwafuwa.gaku.Windows.InformationWindow;
 import ca.fuwafuwa.gaku.Windows.InstantKanjiWindow;
 import ca.fuwafuwa.gaku.Windows.WindowCoordinator;
@@ -43,6 +45,18 @@ public class MainServiceHandler extends Handler {
                 InformationWindow infoWindow = mWindowCoordinator.getWindowOfType(Constants.WINDOW_INFO);
                 infoWindow.setResult(result.getDisplayData());
                 infoWindow.show();
+            }
+        } else if (message.obj instanceof ParsedResult) {
+            ParsedResult result = (ParsedResult) message.obj;
+            Log.d(TAG, result.toString());
+
+            if (result.getDisplayData().getInstantMode()) {
+                // For instant mode, we might still want the old popup or the new one?
+                // Mockup suggests we want the new one when we CLICK.
+                // But ML Kit is fast enough for instant overlay.
+            } else {
+                CaptureWindow captureWindow = mWindowCoordinator.getWindowOfType(Constants.WINDOW_CAPTURE);
+                captureWindow.setParsedResult(result);
             }
         } else {
             Toast.makeText(mGakuService, String.format("Unable to handle type: %s", message.obj.getClass().getName()),

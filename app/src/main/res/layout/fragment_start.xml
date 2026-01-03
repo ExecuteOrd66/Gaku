@@ -61,6 +61,32 @@
         app:layout_constraintTop_toBottomOf="@+id/gaku_tutorial" />
 
     <TextView
+        android:id="@+id/gaku_settings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:padding="10dp"
+        android:text="Settings / API / DB"
+        android:textColor="@color/blue_dark"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/gaku_github" />
+
+    <TextView
+        android:id="@+id/gaku_sync"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:padding="10dp"
+        android:text="Sync Jiten Status"
+        android:textColor="@color/blue_dark"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/gaku_settings" />
+
+    <TextView
         android:id="@+id/support_text"
         android:layout_width="300dp"
         android:layout_height="wrap_content"

@@ -5,6 +5,7 @@ package ca.fuwafuwa.gaku
 // Thanks to the fact that SqliteOpenHelper.onUpgrade() doesn't work (due to multi-threading and getDao() being called before onUpgrade()),
 // we version/upgrade the DBs by changing the name. Lol. Should probably fix this if this becomes an issue in the future.
 const val JMDICT_DATABASE_NAME = "DB_KakuDict-02-16-2019.db"
+const val JM_DICT_FURIGANA_DATABASE_NAME = "JmDictFurigana.db"
 const val TESS_FOLDER_NAME = "tessdata"
 const val TESS_DATA_NAME = "jpn.traineddata"
 const val SCREENSHOT_FOLDER_NAME = "screenshots"
@@ -32,6 +33,7 @@ const val WINDOW_EDIT = "WINDOW_EDIT"
 const val WINDOW_INSTANT_KANJI = "WINDOW_INSTANT_KANJI"
 const val WINDOW_KANJI_CHOICE = "WINDOW_KANJI_CHOICE"
 const val WINDOW_HISTORY = "WINDOW_HISTORY"
+const val WINDOW_WORD_DETAIL = "WINDOW_WORD_DETAIL"
 
 const val GAKU_CHANNEL_ID = "gaku_notification_channel_id"
 const val GAKU_CHANNEL_NAME = "Show Gaku Notification"

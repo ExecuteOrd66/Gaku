@@ -36,6 +36,8 @@ class MainStartFragment : Fragment()
     private lateinit var gakuTitle : TextView
     private lateinit var tutorialText : TextView
     private lateinit var githubText : TextView
+    private lateinit var settingsText : TextView
+    private lateinit var syncText : TextView
 
     private lateinit var supportText : TextView
     private lateinit var progressBar : ProgressBar
@@ -77,6 +79,8 @@ class MainStartFragment : Fragment()
         gakuTitle = rootView.findViewById(R.id.gaku_title)
         tutorialText = rootView.findViewById(R.id.gaku_tutorial)
         githubText = rootView.findViewById(R.id.gaku_github)
+        settingsText = rootView.findViewById(R.id.gaku_settings)
+        syncText = rootView.findViewById(R.id.gaku_sync)
 
         supportText = rootView.findViewById(R.id.support_text)
         progressBar = rootView.findViewById(R.id.progress_bar)
@@ -94,6 +98,18 @@ class MainStartFragment : Fragment()
         githubText.setOnClickListener {
             val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/0xbad1d3a5/gaku"))
             startActivity(browserIntent)
+        }
+
+        settingsText.setOnClickListener {
+            startActivity(Intent(mainActivity, SettingsActivity::class.java))
+        }
+
+        syncText.setOnClickListener {
+            ca.fuwafuwa.gaku.Network.JitenApiClient.getInstance(requireContext()).sync { success, count ->
+                activity?.runOnUiThread {
+                    android.widget.Toast.makeText(requireContext(), if (success) "Sync complete: $count words updated" else "Sync failed", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
         }
 
         return rootView

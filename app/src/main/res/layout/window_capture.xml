@@ -14,7 +14,13 @@
     <ImageView
         android:id="@+id/capture_image"
         android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <ca.fuwafuwa.gaku.Windows.Views.WordOverlayView
+        android:id="@+id/word_overlay"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="1dp" />
+        android:visibility="gone"/>
+
 </FrameLayout>
 
