@@ -29,38 +29,105 @@ public class WordDetailWindow extends Window {
     private PitchAccentGraphView pitchGraph;
     private TextView defText;
     private TextView freqText;
-    private Button btnKnown;
-    private Button btnMature;
-    private Button btnAnki;
+
+    private android.widget.LinearLayout layoutMining;
+    private android.widget.LinearLayout layoutGrading;
+
+    // Mining
+    private Button btnMineAdd;
+    private Button btnMineBlacklist;
+    private Button btnMineNeverForget;
+
+    // Grading
+    private Button btnGradeNothing;
+    private Button btnGradeSomething;
+    private Button btnGradeHard;
+    private Button btnGradeGood;
+    private Button btnGradeEasy;
+
     private android.widget.ImageButton btnClose;
     private ParsedWord currentWord;
     private OnStatusChangeListener statusChangeListener;
+    private ca.fuwafuwa.gaku.Logic.ReviewController reviewController;
 
     public WordDetailWindow(Context context, WindowCoordinator windowCoordinator) {
         super(context, windowCoordinator, R.layout.view_popup_word);
+        this.reviewController = new ca.fuwafuwa.gaku.Logic.ReviewController(context);
 
         wordText = window.findViewById(R.id.popup_word);
         tagText = window.findViewById(R.id.popup_tag);
         pitchGraph = window.findViewById(R.id.popup_pitch_graph);
         defText = window.findViewById(R.id.popup_def);
         freqText = window.findViewById(R.id.popup_freq);
-
-        btnKnown = window.findViewById(R.id.btn_mark_known);
-        btnMature = window.findViewById(R.id.btn_mark_mature);
-        btnAnki = window.findViewById(R.id.btn_add_anki);
         btnClose = window.findViewById(R.id.btn_close_popup);
 
-        btnKnown.setOnClickListener(v -> updateStatus(UserWord.STATUS_KNOWN));
-        btnMature.setOnClickListener(v -> updateStatus(UserWord.STATUS_MATURE));
-        btnAnki.setOnClickListener(v -> {
-            Toast.makeText(context, "Anki integration coming soon!", Toast.LENGTH_SHORT).show();
+        layoutMining = window.findViewById(R.id.layout_mining_buttons);
+        layoutGrading = window.findViewById(R.id.layout_grading_buttons);
+
+        btnMineAdd = window.findViewById(R.id.btn_mine_add);
+        btnMineBlacklist = window.findViewById(R.id.btn_mine_blacklist);
+        btnMineNeverForget = window.findViewById(R.id.btn_mine_never_forget);
+
+        btnGradeNothing = window.findViewById(R.id.btn_grade_nothing);
+        btnGradeSomething = window.findViewById(R.id.btn_grade_something);
+        btnGradeHard = window.findViewById(R.id.btn_grade_hard);
+        btnGradeGood = window.findViewById(R.id.btn_grade_good);
+        btnGradeEasy = window.findViewById(R.id.btn_grade_easy);
+
+        // Mining Listeners
+        btnMineAdd.setOnClickListener(v -> {
+            reviewController.mine(currentWord);
+            updateStatus(UserWord.STATUS_LEARNING);
         });
+        btnMineBlacklist.setOnClickListener(v -> {
+            reviewController.setJpdbFlag(currentWord, "blacklist", false);
+            updateStatus(UserWord.STATUS_DISMISSED);
+        });
+        btnMineNeverForget.setOnClickListener(v -> {
+            reviewController.setJpdbFlag(currentWord, "never-forget", false);
+            updateStatus(UserWord.STATUS_MASTERED);
+        });
+
+        // Grading Listeners
+        // For Jiten/Anki, these just open the browser. Local status update might need
+        // verification?
+        // For now, assume user handles status manually (via sync) OR we update loosely.
+        // User request: "jpd-breader buttons".
+        // In jpd-breader, clicking a grade sends review.
+        // Since we can't send review to JPDB easily (due to API limit), and Anki opens
+        // a browser window...
+        // We will just proxy the call.
+
+        android.view.View.OnClickListener gradeListener = v -> {
+            String grade = "good";
+            if (v == btnGradeNothing)
+                grade = "nothing";
+            if (v == btnGradeSomething)
+                grade = "something";
+            if (v == btnGradeHard)
+                grade = "hard";
+            if (v == btnGradeGood)
+                grade = "good";
+            if (v == btnGradeEasy)
+                grade = "easy";
+            reviewController.grade(currentWord, grade);
+            // No local status update for now as we don't know the result.
+        };
+
+        btnGradeNothing.setOnClickListener(gradeListener);
+        btnGradeSomething.setOnClickListener(gradeListener);
+        btnGradeHard.setOnClickListener(gradeListener);
+        btnGradeGood.setOnClickListener(gradeListener);
+        btnGradeEasy.setOnClickListener(gradeListener);
+
         btnClose.setOnClickListener(v -> hide());
     }
 
     public void setWord(ParsedWord word) {
         this.currentWord = word;
         wordText.setText(word.getSurface());
+
+        boolean showMining = false;
 
         switch (word.getStatus()) {
             case UserWord.STATUS_LEARNING:
@@ -75,15 +142,28 @@ public class WordDetailWindow extends Window {
                 tagText.setText("MATURE");
                 tagText.setBackgroundColor(Color.parseColor("#9b59b6"));
                 break;
+            case UserWord.STATUS_MASTERED:
+                tagText.setText("MASTERED");
+                tagText.setBackgroundColor(Color.parseColor("#27ae60"));
+                break;
+            case UserWord.STATUS_DUE:
+                tagText.setText("DUE"); // Red?
+                tagText.setBackgroundColor(Color.parseColor("#e74c3c"));
+                break;
             case UserWord.STATUS_DISMISSED:
                 tagText.setText("DISMISSED");
                 tagText.setBackgroundColor(Color.parseColor("#95a5a6"));
+                showMining = true;
                 break;
             default:
-                tagText.setText("UNKNOWN");
+                tagText.setText("UNKNOWN"); // New
                 tagText.setBackgroundColor(Color.parseColor("#3498db"));
+                showMining = true;
                 break;
         }
+
+        layoutMining.setVisibility(showMining ? android.view.View.VISIBLE : android.view.View.GONE);
+        layoutGrading.setVisibility(!showMining ? android.view.View.VISIBLE : android.view.View.GONE);
 
         if (word.getPitchPattern() != null && word.getReading() != null) {
             pitchGraph.setData(word.getReading(), word.getPitchPattern());

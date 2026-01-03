@@ -1,8 +1,20 @@
 package ca.fuwafuwa.gaku.Network;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class JpdbDTOs {
+
+    public static class ModifyDeckRequest {
+        public Object id; // Can be Integer or String (e.g., "blacklist", "never-forget")
+        public List<List<Integer>> vocabulary;
+
+        public ModifyDeckRequest(Object id, int vid, int sid) {
+            this.id = id;
+            this.vocabulary = Collections.singletonList(Arrays.asList(vid, sid));
+        }
+    }
 
     public static class ParseRequest {
         public List<String> text;
@@ -35,6 +47,6 @@ public class JpdbDTOs {
 
     public static final String[] VOCAB_FIELDS_REQUEST = {
             "vid", "sid", "rid", "spelling", "reading",
-            "card_state", "meanings_chunks", "meanings_part_of_speech", "pitch_accent"
+            "card_state", "meanings_chunks", "meanings_part_of_speech", "pitch_accent", "due_at"
     };
 }

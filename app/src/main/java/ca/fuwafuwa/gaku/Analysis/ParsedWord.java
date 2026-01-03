@@ -92,4 +92,22 @@ public class ParsedWord {
     public void setMeaningPos(List<String> meaningPos) {
         this.meaningPos = meaningPos;
     }
+
+    private java.util.Map<String, Object> metadata = new java.util.HashMap<>();
+
+    public java.util.Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(java.util.Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
+
+    public void putMetadata(String key, Object value) {
+        this.metadata.put(key, value);
+    }
+
+    public Object getMetadata(String key) {
+        return this.metadata.get(key);
+    }
 }

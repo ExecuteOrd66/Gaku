@@ -16,8 +16,11 @@ public class JpdbSentenceParser implements SentenceParser {
     private static final String TAG = "JpdbSentenceParser";
     private JpdbApiClient apiClient;
 
+    private android.content.SharedPreferences prefs;
+
     public JpdbSentenceParser(Context context) {
         this.apiClient = JpdbApiClient.getInstance(context);
+        this.prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context);
     }
 
     @Override
@@ -44,16 +47,21 @@ public class JpdbSentenceParser implements SentenceParser {
 
                 List<Object> vocabTuple = response.vocabulary.get(vocabIndex);
                 // Schema: [vid, sid, rid, spelling, reading, card_state, meanings_chunks,
-                // meanings_pos, pitch_accent]
+                // meanings_pos, pitch_accent, due_at]
 
+                int vid = ((Number) vocabTuple.get(0)).intValue();
+                int sid = ((Number) vocabTuple.get(1)).intValue();
                 String spelling = (String) vocabTuple.get(3);
                 String reading = (String) vocabTuple.get(4);
 
                 ParsedWord word = new ParsedWord(spelling, reading, spelling, null);
+                word.putMetadata("vid", vid);
+                word.putMetadata("sid", sid);
 
                 // State
                 Object stateObj = vocabTuple.get(5);
-                word.setStatus(mapJpdbStatus(stateObj));
+                Object dueAtObj = (vocabTuple.size() > 9) ? vocabTuple.get(9) : null;
+                word.setStatus(mapJpdbStatus(stateObj, dueAtObj));
 
                 // Meanings
                 // meanings_chunks is List<List<String>> (glosses per meaning)
@@ -100,11 +108,6 @@ public class JpdbSentenceParser implements SentenceParser {
                     List<?> pitches = (List<?>) vocabTuple.get(8);
                     StringBuilder pitchStr = new StringBuilder();
                     for (Object p : pitches) {
-                        // Gaku expects... uh, typically numeric patterns or string rep?
-                        // Local parser put "readings" there which usually has pitch info??
-                        // Jiten provided numeric indices.
-                        // JPDB provides?? Let's assume text representation for now.
-                        // Actually TS says "string[]".
                         pitchStr.append(p.toString());
                     }
                     word.setPitchPattern(pitchStr.toString());
@@ -120,13 +123,9 @@ public class JpdbSentenceParser implements SentenceParser {
         return parsedWords;
     }
 
-    private int mapJpdbStatus(Object stateObj) {
+    private int mapJpdbStatus(Object stateObj, Object dueAtObj) {
         if (stateObj == null)
             return UserWord.STATUS_UNKNOWN;
-
-        // stateObj is ['state', ...] or just 'state'?
-        // TS type: ApiCardState is a Tuple: ['new'] or ['locked', 'new'] etc.
-        // It's a List<String>.
 
         if (stateObj instanceof List) {
             List<?> stateList = (List<?>) stateObj;
@@ -150,17 +149,15 @@ public class JpdbSentenceParser implements SentenceParser {
                 case "new":
                     return UserWord.STATUS_UNKNOWN;
                 case "learning":
-                    return UserWord.STATUS_LEARNING;
                 case "known":
-                    return UserWord.STATUS_KNOWN;
+                    // Check interval threshold
+                    return determineLearningOrMastered(dueAtObj);
                 case "never-forget":
                     return UserWord.STATUS_MASTERED;
                 case "due":
-                    return UserWord.STATUS_DUE;
                 case "failed":
-                    return UserWord.STATUS_DUE; // or learning?
+                    return UserWord.STATUS_DUE;
                 case "suspended":
-                    return UserWord.STATUS_DISMISSED;
                 case "blacklisted":
                     return UserWord.STATUS_DISMISSED;
                 default:
@@ -169,5 +166,31 @@ public class JpdbSentenceParser implements SentenceParser {
         }
 
         return UserWord.STATUS_UNKNOWN;
+    }
+
+    private int determineLearningOrMastered(Object dueAtObj) {
+        if (dueAtObj instanceof Number) {
+            long dueAt = ((Number) dueAtObj).longValue();
+            long now = System.currentTimeMillis() / 1000;
+            long secondsUntilDue = dueAt - now;
+
+            // Threshold in days -> convert to seconds
+            String thresholdStr = prefs.getString("pref_young_threshold", "21");
+            int thresholdDays = 21;
+            try {
+                thresholdDays = Integer.parseInt(thresholdStr);
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+            long thresholdSeconds = thresholdDays * 24L * 60L * 60L;
+
+            if (secondsUntilDue >= thresholdSeconds) {
+                return UserWord.STATUS_MASTERED;
+            } else {
+                return UserWord.STATUS_LEARNING;
+            }
+        }
+        // Fallback if due_at is missing for some reason
+        return UserWord.STATUS_LEARNING;
     }
 }

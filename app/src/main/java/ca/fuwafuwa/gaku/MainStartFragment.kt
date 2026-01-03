@@ -105,11 +105,7 @@ class MainStartFragment : Fragment()
         }
 
         syncText.setOnClickListener {
-            ca.fuwafuwa.gaku.Network.JitenApiClient.getInstance(requireContext()).sync { success, count ->
-                activity?.runOnUiThread {
-                    android.widget.Toast.makeText(requireContext(), if (success) "Sync complete: $count words updated" else "Sync failed", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
+            ca.fuwafuwa.gaku.Logic.ReviewController(requireContext()).sync()
         }
 
         return rootView

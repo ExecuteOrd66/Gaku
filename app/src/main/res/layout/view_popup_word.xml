@@ -112,45 +112,116 @@
         android:textColor="#34495e"
         android:lineSpacingMultiplier="1.1"/>
 
-    <!-- Action Buttons -->
+    <!-- Mining Buttons (New / Unknown words) -->
     <LinearLayout
+        android:id="@+id/layout_mining_buttons"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginTop="4dp"
-        android:gravity="center">
+        android:gravity="center"
+        android:visibility="gone">
 
         <Button
-            android:id="@+id/btn_mark_known"
+            android:id="@+id/btn_mine_add"
             android:layout_width="0dp"
             android:layout_height="36dp"
             android:layout_weight="1"
-            android:text="Known"
+            android:text="Add"
             style="?android:attr/borderlessButtonStyle"
             android:textSize="11sp"
             android:textColor="#2ecc71"
             android:textAllCaps="false"/>
 
         <Button
-            android:id="@+id/btn_mark_mature"
+            android:id="@+id/btn_mine_blacklist"
             android:layout_width="0dp"
             android:layout_height="36dp"
             android:layout_weight="1"
-            android:text="Mature"
+            android:text="Block"
             style="?android:attr/borderlessButtonStyle"
             android:textSize="11sp"
-            android:textColor="#9b59b6"
+            android:textColor="#e74c3c"
             android:textAllCaps="false"/>
 
         <Button
-            android:id="@+id/btn_add_anki"
+            android:id="@+id/btn_mine_never_forget"
             android:layout_width="0dp"
             android:layout_height="36dp"
             android:layout_weight="1"
-            android:text="Anki"
+            android:text="Forget-Me-Not"
             style="?android:attr/borderlessButtonStyle"
-            android:textSize="11sp"
+            android:textSize="9sp"
+            android:textColor="#f1c40f"
+            android:textAllCaps="false"/>
+    </LinearLayout>
+
+    <!-- Grading Buttons (Known / Learning / Due / Mastered words) -->
+    <LinearLayout
+        android:id="@+id/layout_grading_buttons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <!-- Buttons: Nothing, Something, Hard, Good, Easy -->
+        <!-- Maybe icons or smaller text to fit? -->
+        <Button
+            android:id="@+id/btn_grade_nothing"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Nothing"
+            style="?android:attr/borderlessButtonStyle"
+            android:textSize="9sp"
+            android:textColor="#95a5a6"
+            android:padding="0dp"
+            android:textAllCaps="false"/>
+        <Button
+            android:id="@+id/btn_grade_something"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Smt"
+            style="?android:attr/borderlessButtonStyle"
+            android:textSize="9sp"
+            android:textColor="#e67e22"
+            android:padding="0dp"
+            android:textAllCaps="false"/>
+        <Button
+            android:id="@+id/btn_grade_hard"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Hard"
+            style="?android:attr/borderlessButtonStyle"
+            android:textSize="9sp"
+            android:textColor="#e74c3c"
+            android:padding="0dp"
+            android:textAllCaps="false"/>
+        <Button
+            android:id="@+id/btn_grade_good"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Good"
+            style="?android:attr/borderlessButtonStyle"
+            android:textSize="9sp"
+            android:textColor="#2ecc71"
+            android:padding="0dp"
+            android:textAllCaps="false"/>
+        <Button
+            android:id="@+id/btn_grade_easy"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Easy"
+            style="?android:attr/borderlessButtonStyle"
+            android:textSize="9sp"
             android:textColor="#3498db"
+            android:padding="0dp"
             android:textAllCaps="false"/>
     </LinearLayout>
 

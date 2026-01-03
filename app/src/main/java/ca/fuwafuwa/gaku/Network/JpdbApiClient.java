@@ -74,5 +74,30 @@ public class JpdbApiClient {
             return response.body();
         }
         return null;
+
+    }
+
+    public boolean addVocabulary(JpdbDTOs.ModifyDeckRequest request) {
+        refreshSettings();
+        if (authToken == null || authToken.isEmpty())
+            return false;
+        try {
+            return api.addVocabulary(authToken, request).execute().isSuccessful();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean removeVocabulary(JpdbDTOs.ModifyDeckRequest request) {
+        refreshSettings();
+        if (authToken == null || authToken.isEmpty())
+            return false;
+        try {
+            return api.removeVocabulary(authToken, request).execute().isSuccessful();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }
