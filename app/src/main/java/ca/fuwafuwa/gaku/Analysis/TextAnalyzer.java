@@ -27,48 +27,56 @@ public class TextAnalyzer {
     public ParsedResult analyze(Text mlKitText, DisplayDataOcr displayData, long ocrTime) {
         List<ParsedWord> parsedWords = new ArrayList<>();
         List<ParsedLine> parsedLines = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        List<Text.Symbol> allSymbols = new ArrayList<>();
 
         for (Text.TextBlock block : mlKitText.getTextBlocks()) {
             for (Text.Line line : block.getLines()) {
                 parsedLines.add(new ParsedLine(line.getText(), line.getBoundingBox()));
-                parsedWords.addAll(processLine(line));
+                if (sb.length() > 0) {
+                    sb.append("\n");
+                }
+                sb.append(line.getText());
+                for (Text.Element element : line.getElements()) {
+                    allSymbols.addAll(element.getSymbols());
+                }
             }
         }
 
-        return new ParsedResult(parsedWords, parsedLines, displayData, ocrTime);
-    }
-
-    private List<ParsedWord> processLine(Text.Line line) {
-        String lineText = line.getText();
-        SentenceParser parser = parserFactory.getParser();
-        List<ParsedWord> words = parser.parse(lineText);
-
-        int charIndex = 0;
-        List<Text.Symbol> symbols = new ArrayList<>();
-        for (Text.Element element : line.getElements()) {
-            symbols.addAll(element.getSymbols());
+        String fullText = sb.toString();
+        if (fullText.isEmpty()) {
+            return new ParsedResult(parsedWords, parsedLines, displayData, ocrTime);
         }
 
-        List<ParsedWord> resultWords = new ArrayList<>();
+        SentenceParser parser = parserFactory.getParser();
+        long startTime = System.currentTimeMillis();
+        List<ParsedWord> words = parser.parse(fullText);
+        long endTime = System.currentTimeMillis();
+        android.util.Log.d("TextAnalyzer",
+                String.format("Batched parse of %d lines took %d ms", parsedLines.size(), (endTime - startTime)));
+
+        int charIndex = 0;
+        int symbolIndex = 0;
 
         for (ParsedWord word : words) {
             String surface = word.getSurface();
-            // Calculate bounding box for this token using character-level symbols
-            // Note: This assumes the parser returns tokens that sequentially match the
-            // input string.
-            // If Jiten API normalizes text (e.g. half-width to full-width), indices might
-            // misalign.
-            // For now assuming fidelity.
-            Rect tokenRect = calculateTokenRect(symbols, charIndex, surface.length());
-            charIndex += surface.length();
 
-            // Create new word with rect (ParsedWord fields are private with no setters for
-            // Rect...
-            // wait, ParsedWord constructor takes Rect.
-            // I can't set Rect on existing word if there is no setter.
-            // ParsedWord has no setter for boundingBox.
-            // So I must recreate it or add a setter.
-            // Recreating is safer/cleaner given the existing class structure.
+            // Sync charIndex with surface start, skipping newlines
+            while (charIndex < fullText.length() && fullText.charAt(charIndex) == '\n') {
+                charIndex++;
+            }
+
+            // Verify surface match (optional but good for debugging)
+            if (charIndex + surface.length() <= fullText.length()) {
+                String sub = fullText.substring(charIndex, charIndex + surface.length());
+                if (!sub.equals(surface)) {
+                    // This might happen if parser normalizes text.
+                    // For now, we trust the index but log if needed.
+                }
+            }
+
+            Rect tokenRect = calculateTokenRectFromGlobalSymbols(allSymbols, fullText, charIndex, surface.length());
+            charIndex += surface.length();
 
             ParsedWord newWord = new ParsedWord(surface, word.getReading(), word.getLemma(), tokenRect);
             newWord.setStatus(word.getStatus());
@@ -78,45 +86,56 @@ public class TextAnalyzer {
             newWord.setDictionary(word.getDictionary());
             newWord.setMeaningPos(word.getMeaningPos());
 
-            resultWords.add(newWord);
+            parsedWords.add(newWord);
         }
 
-        return resultWords;
+        return new ParsedResult(parsedWords, parsedLines, displayData, ocrTime);
     }
 
-    /**
-     * Maps a range of characters in the line string to the union of bounding boxes
-     * of the corresponding ML Kit Symbols (characters).
-     */
-    private Rect calculateTokenRect(List<Text.Symbol> symbols, int startIndex, int length) {
+    private Rect calculateTokenRectFromGlobalSymbols(List<Text.Symbol> symbols, String fullText, int startIndex,
+            int length) {
         Rect unionRect = null;
-        int accumulatedTextLen = 0;
+        int currentFullTextIdx = 0;
+        int symIdx = 0;
 
-        for (Text.Symbol symbol : symbols) {
-            String symbolText = symbol.getText();
-            int symbolStart = accumulatedTextLen;
-            int symbolEnd = symbolStart + symbolText.length();
+        // Skip characters in fullText until we reach startIndex, accounting for
+        // newlines that aren't in symbols
+        for (int i = 0; i < startIndex; i++) {
+            if (fullText.charAt(i) != '\n') {
+                symIdx++;
+            }
+        }
 
-            // Check intersection
-            int overlapStart = Math.max(startIndex, symbolStart);
-            int overlapEnd = Math.min(startIndex + length, symbolEnd);
+        // Collect symbols for the length of the word
+        int charsToCollect = length;
+        while (charsToCollect > 0 && symIdx < symbols.size()) {
+            // Find next non-newline char in fullText to see if it corresponds to current
+            // symbol
+            int nextTargetCharIdx = startIndex + (length - charsToCollect);
+            while (nextTargetCharIdx < fullText.length() && fullText.charAt(nextTargetCharIdx) == '\n') {
+                nextTargetCharIdx++;
+            }
 
-            if (overlapStart < overlapEnd) {
-                Rect symbolRect = symbol.getBoundingBox();
-                if (symbolRect != null) {
-                    if (unionRect == null) {
-                        unionRect = new Rect(symbolRect);
-                    } else {
-                        unionRect.union(symbolRect);
-                    }
+            if (nextTargetCharIdx >= fullText.length())
+                break;
+
+            Text.Symbol symbol = symbols.get(symIdx);
+            Rect symbolRect = symbol.getBoundingBox();
+            if (symbolRect != null) {
+                if (unionRect == null) {
+                    unionRect = new Rect(symbolRect);
+                } else {
+                    unionRect.union(symbolRect);
                 }
             }
-            accumulatedTextLen += symbolText.length();
+            symIdx++;
+            charsToCollect--;
         }
 
         if (unionRect == null) {
-            return new Rect(0, 0, 0, 0); // Fallback
+            return new Rect(0, 0, 0, 0);
         }
         return unionRect;
     }
+
 }

@@ -197,58 +197,79 @@ public class WordOverlayView extends RelativeLayout {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        if (words == null || words.isEmpty()) {
+            return;
+        }
+
         int offset = getOffset();
+        int gap = ca.fuwafuwa.gaku.GakuTools.dpToPx(getContext(), 1);
+        boolean isVertical = textDirection == ca.fuwafuwa.gaku.TextDirection.VERTICAL;
+
+        // Group segments by status
+        java.util.Map<Integer, List<Float>> segmentsByStatus = new java.util.HashMap<>();
+
         for (ParsedWord word : words) {
+            int status = word.getStatus();
+            if (status == UserWord.STATUS_DISMISSED) {
+                continue;
+            }
+
+            if (!segmentsByStatus.containsKey(status)) {
+                segmentsByStatus.put(status, new ArrayList<>());
+            }
+
             Rect rect = word.getBoundingBox();
-            Paint paint;
-            switch (word.getStatus()) {
-                case UserWord.STATUS_LEARNING:
-                    paint = paintLearning;
-                    break;
-                case UserWord.STATUS_KNOWN:
-                    paint = paintKnown;
-                    break;
-                case UserWord.STATUS_MATURE:
-                    paint = paintMature;
-                    break;
-                case UserWord.STATUS_MASTERED:
-                    paint = paintMastered;
-                    break;
-                case UserWord.STATUS_DUE:
-                    paint = paintDue;
-                    break;
-                case UserWord.STATUS_DISMISSED:
-                    // Blacklisted - invisible.
-                    // We can either set paint to transparent or skip drawing.
-                    // If we skip `continue` in loop, we might break logic if lines are needed for
-                    // something else.
-                    // But here it draws underline.
-                    paint = paintDismissed;
-                    break;
-                default:
-                    paint = paintUnknown;
-                    break;
-            }
+            List<Float> segments = segmentsByStatus.get(status);
 
-            if (word.getStatus() == UserWord.STATUS_DISMISSED) {
-                continue; // Do not draw line for blacklisted
-            }
-
-            int gap = ca.fuwafuwa.gaku.GakuTools.dpToPx(getContext(), 1);
-
-            if (textDirection == ca.fuwafuwa.gaku.TextDirection.VERTICAL) {
-                // Draw a vertical line on the right side of the rect
-                canvas.drawLine(rect.right + offset, rect.top + offset + gap, rect.right + offset,
-                        rect.bottom + offset - gap,
-                        paint);
+            if (isVertical) {
+                // x0, y0, x1, y1
+                segments.add((float) (rect.right + offset));
+                segments.add((float) (rect.top + offset + gap));
+                segments.add((float) (rect.right + offset));
+                segments.add((float) (rect.bottom + offset - gap));
             } else {
-                // Draw a horizontal line at the bottom of the rect, slightly inside the bottom
-                // edge
-                // Added a small gap on left and right for visual segmentation
-                canvas.drawLine(rect.left + offset + gap, rect.bottom + offset - 2, rect.right + offset - gap,
-                        rect.bottom + offset - 2,
-                        paint);
+                segments.add((float) (rect.left + offset + gap));
+                segments.add((float) (rect.bottom + offset - 2));
+                segments.add((float) (rect.right + offset - gap));
+                segments.add((float) (rect.bottom + offset - 2));
             }
+        }
+
+        // Draw batched segments
+        long startTime = System.nanoTime();
+        for (java.util.Map.Entry<Integer, List<Float>> entry : segmentsByStatus.entrySet()) {
+            List<Float> floatList = entry.getValue();
+            if (floatList.isEmpty())
+                continue;
+
+            float[] pts = new float[floatList.size()];
+            for (int i = 0; i < floatList.size(); i++) {
+                pts[i] = floatList.get(i);
+            }
+
+            Paint paint = getPaintForStatus(entry.getKey());
+            canvas.drawLines(pts, paint);
+        }
+        long endTime = System.nanoTime();
+        Log.d(TAG, String.format("onDraw batched: %d segments in %.3f ms", words.size(), (endTime - startTime) / 1e6));
+    }
+
+    private Paint getPaintForStatus(int status) {
+        switch (status) {
+            case UserWord.STATUS_LEARNING:
+                return paintLearning;
+            case UserWord.STATUS_KNOWN:
+                return paintKnown;
+            case UserWord.STATUS_MATURE:
+                return paintMature;
+            case UserWord.STATUS_MASTERED:
+                return paintMastered;
+            case UserWord.STATUS_DUE:
+                return paintDue;
+            case UserWord.STATUS_DISMISSED:
+                return paintDismissed;
+            default:
+                return paintUnknown;
         }
     }
 

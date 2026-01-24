@@ -15,6 +15,8 @@ public class JitenSentenceParser implements SentenceParser {
     private static final String TAG = "JitenSentenceParser";
     private JitenApiClient apiClient;
 
+    private static final android.util.LruCache<String, JitenDTOs.WordDto> wordCache = new android.util.LruCache<>(200);
+
     public JitenSentenceParser(Context context) {
         this.apiClient = JitenApiClient.getInstance(context);
     }
@@ -29,7 +31,15 @@ public class JitenSentenceParser implements SentenceParser {
             }
 
             for (JitenDTOs.DeckWordDto deckWord : deckWords) {
-                JitenDTOs.WordDto wordDetails = apiClient.getWordDetails(deckWord.wordId, deckWord.readingIndex);
+                String cacheKey = deckWord.wordId + "_" + deckWord.readingIndex;
+                JitenDTOs.WordDto wordDetails = wordCache.get(cacheKey);
+
+                if (wordDetails == null) {
+                    wordDetails = apiClient.getWordDetails(deckWord.wordId, deckWord.readingIndex);
+                    if (wordDetails != null) {
+                        wordCache.put(cacheKey, wordDetails);
+                    }
+                }
 
                 if (wordDetails != null) {
                     ParsedWord word = convertToParsedWord(deckWord, wordDetails);
