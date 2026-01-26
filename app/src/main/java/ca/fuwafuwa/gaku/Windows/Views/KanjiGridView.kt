@@ -2,6 +2,7 @@ package ca.fuwafuwa.gaku.Windows.Views
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.View
 import ca.fuwafuwa.gaku.Windows.Data.DisplayData
 import ca.fuwafuwa.gaku.Windows.Data.ISquareChar
 import ca.fuwafuwa.gaku.Windows.Interfaces.IRecalculateKanjiViews
@@ -81,6 +82,11 @@ class KanjiGridView : SquareGridView, IRecalculateKanjiViews
         postInvalidate()
     }
 
+    fun clearSelection()
+    {
+        unhighlightAll()
+    }
+
     fun unhighlightAll(squareCharToExclude: ISquareChar)
     {
         for (k in kanjiViewList)
@@ -131,26 +137,40 @@ class KanjiGridView : SquareGridView, IRecalculateKanjiViews
 
     private fun ensureViews()
     {
-        val kanjiViews = kanjiViewList
         val numChars = mDisplayData.count - offset
-        val kanjiViewSize = kanjiViews.size
+        val currentChildCount = childCount
 
-        if (numChars > kanjiViewSize)
+        // 1. If we need MORE views, add them
+        if (numChars > currentChildCount)
         {
-            addKanjiViews(numChars - kanjiViewSize)
-        } else if (numChars < kanjiViewSize)
+            addKanjiViews(numChars - currentChildCount)
+        } 
+        
+        // 2. Iterate through all children. Bind data to needed ones, Hide the rest.
+        // We do NOT remove views anymore, avoiding GC overhead.
+        for (i in 0 until childCount) 
         {
-            removeKanjiViews(kanjiViewSize - numChars)
-        }
-
-        for ((index, squareChar) in mDisplayData.squareChars.subList(offset, mDisplayData.count).withIndex())
-        {
-            val kanjiView = getChildAt(index) as KanjiCharacterView
-            kanjiView.setText(squareChar)
+            val kanjiView = getChildAt(i) as KanjiCharacterView
+            
+            if (i < numChars) {
+                // We need this view. Make it visible and update data.
+                if (kanjiView.visibility != View.VISIBLE) {
+                    kanjiView.visibility = View.VISIBLE
+                }
+                
+                // Get data based on offset
+                val squareChar = mDisplayData.squareChars[offset + i]
+                kanjiView.setText(squareChar)
+                kanjiView.unhighlight()
+            } else {
+                // We don't need this view right now. Hide it.
+                if (kanjiView.visibility != View.GONE) {
+                    kanjiView.visibility = View.GONE
+                }
+            }
         }
 
         setItemCount(numChars)
-        unhighlightAll()
         postInvalidate()
     }
 
@@ -163,15 +183,6 @@ class KanjiGridView : SquareGridView, IRecalculateKanjiViews
             kanjiView.setCellSize(mKanjiCellSize)
 
             addView(kanjiView)
-        }
-    }
-
-    private fun removeKanjiViews(count: Int)
-    {
-        val childCount = childCount
-        for (i in childCount downTo childCount - count + 1)
-        {
-            removeViewAt(i - 1)
         }
     }
 

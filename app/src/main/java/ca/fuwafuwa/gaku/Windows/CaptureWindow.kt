@@ -54,7 +54,12 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     private var mCommonParser: CommonParser? = null
 
     // Helper class to hold data
-    private inner class ScreenshotForOcr(val crop: Bitmap?, val orig: Bitmap?, val params: BoxParams?)
+    private inner class ScreenshotForOcr(val crop: Bitmap?, val orig: Bitmap?, val params: BoxParams?) {
+        fun recycle() {
+            if (crop != null && !crop.isRecycled) crop.recycle()
+            if (orig != null && !orig.isRecycled) orig.recycle()
+        }
+    }
 
     init
     {
@@ -209,7 +214,7 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             mProcessingOcr = false
             mWindowBox.background = mBorderReady
             mWindowBox.clearAnimation()
-            Log.d(TAG, "stopLoadingAnimation - instant: $instant")
+            
             if (instant)
             {
                 mImageView.imageAlpha = 255
@@ -217,6 +222,8 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             {
                 mImageView.imageAlpha = 255
                 mImageView.setImageResource(0)
+                
+                mScreenshotForOcr?.recycle() 
                 mScreenshotForOcr = null
             }
         }

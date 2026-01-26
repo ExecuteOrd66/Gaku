@@ -42,8 +42,8 @@ import ca.fuwafuwa.gaku.Windows.Views.KanjiGridView;
 /**
  * Created by 0xbad1d3a5 on 4/23/2016.
  */
-public class InformationWindow extends Window implements Searcher.SearchDictDone, IRecalculateKanjiViews, ISearchPerformer, ICopyText
-{
+public class InformationWindow extends Window
+        implements Searcher.SearchDictDone, IRecalculateKanjiViews, ISearchPerformer, ICopyText {
 
     private static final String TAG = InformationWindow.class.getName();
     private static final float FLICK_THRESHOLD = -0.05f;
@@ -57,8 +57,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     private boolean mTextOnlyLookup;
     private ArrayList<ISquareChar> mSearchedChars = new ArrayList<>();
 
-    public InformationWindow(Context context, WindowCoordinator windowCoordinator)
-    {
+    public InformationWindow(Context context, WindowCoordinator windowCoordinator) {
         super(context, windowCoordinator, R.layout.window_info);
 
         mMaxFlingVelocity = ViewConfiguration.get(this.context).getScaledMaximumFlingVelocity();
@@ -79,20 +78,19 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         show();
     }
 
-    public void setResult(DisplayData displayData)
-    {
+    public void setResult(DisplayData displayData) {
         mSearchedChars = new ArrayList<>();
 
         mKanjiGrid.removeAllViews();
         mKanjiGrid.setText(displayData);
     }
 
-    public void setResult(String textResult)
-    {
+    public void setResult(String textResult) {
         List<String> charList = GakuTools.splitTextByChar(textResult);
         List<ISquareChar> squareCharList = new ArrayList<>();
         DisplayData displayData = new DisplayData(squareCharList);
-        for (String c : charList) squareCharList.add(new SquareChar(displayData, c));
+        for (String c : charList)
+            squareCharList.add(new SquareChar(displayData, c));
         displayData.assignIndicies();
 
         mKanjiGrid.setText(displayData);
@@ -101,8 +99,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         mTextOnlyLookup = true;
     }
 
-    public void copyText()
-    {
+    public void copyText() {
         ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText(null, mKanjiGrid.getText());
         clipboard.setPrimaryClip(clip);
@@ -111,46 +108,49 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     }
 
     @Override
-    public void performSearch(@NotNull ISquareChar squareChar)
-    {
+    public void performSearch(@NotNull ISquareChar squareChar) {
         Log.d(TAG, squareChar.getChar());
 
+        // 1. The KanjiCharacterView has already highlighted itself in its onSingleTapUp method.
+        // 2. We call unhighlightAll(squareChar) to remove highlights from any PREVIOUSLY selected words,
+        //    passing 'squareChar' as the exception so we don't turn off the one the user just touched.
         mKanjiGrid.unhighlightAll(squareChar);
+
         mSearcher.search(new SearchInfo(squareChar));
     }
 
     /**
-     * InformationWindow does not need to reInit layout as its getDefaultParams() are all relative. Re-initing will cause bugs.
+     * InformationWindow does not need to reInit layout as its getDefaultParams()
+     * are all relative. Re-initing will cause bugs.
      */
     @Override
-    public void reInit(ReinitOptions options)
-    {
+    public void reInit(ReinitOptions options) {
         options.reinitViewLayout = false;
         super.reInit(options);
     }
 
     @Override
-    protected WindowManager.LayoutParams getDefaultParams()
-    {
+    protected WindowManager.LayoutParams getDefaultParams() {
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
-                Build.VERSION.SDK_INT > 25 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                Build.VERSION.SDK_INT > 25 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                        : WindowManager.LayoutParams.TYPE_PHONE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT);
+                PixelFormat.TRANSLUCENT);
         params.x = 0;
         params.y = 0;
         params.gravity = Gravity.TOP | Gravity.CENTER;
-        params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING | WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE;
+        params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+                | WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE;
         return params;
     }
 
     @Override
-    public boolean onTouch(MotionEvent e)
-    {
+    public boolean onTouch(MotionEvent e) {
         mGestureDetector.onTouchEvent(e);
 
-        if (e.getAction() == MotionEvent.ACTION_UP){
+        if (e.getAction() == MotionEvent.ACTION_UP) {
             params.y = 0;
             windowManager.updateViewLayout(window, params);
             return true;
@@ -160,8 +160,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     }
 
     @Override
-    public void show()
-    {
+    public void show() {
         mDictResults.setText("");
 
         window.setVisibility(View.VISIBLE);
@@ -171,23 +170,18 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     }
 
     @Override
-    public void hide()
-    {
+    public void hide() {
         window.animate().translationY(-getRealDisplaySize().y).setListener(new AnimatorListenerAdapter() {
             @Override
-            public void onAnimationEnd(Animator animation)
-            {
+            public void onAnimationEnd(Animator animation) {
                 window.setVisibility(View.INVISIBLE);
 
-                if (!mTextOnlyLookup)
-                {
+                if (!mTextOnlyLookup) {
                     InformationWindow.super.hide();
-                }
-                else
-                {
-                    // hide() may have been called multiple times - this isn't thread-safe but whatever
-                    if (windowCoordinator != null)
-                    {
+                } else {
+                    // hide() may have been called multiple times - this isn't thread-safe but
+                    // whatever
+                    if (windowCoordinator != null) {
                         windowCoordinator.stopAllWindows();
                     }
                 }
@@ -196,62 +190,70 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     }
 
     @Override
-    public void stop()
-    {
+    public void stop() {
         mSearcher.unregisterCallback();
         super.stop();
     }
 
     @Override
-    public boolean onResize(MotionEvent e)
-    {
+    public boolean onResize(MotionEvent e) {
         return false;
     }
 
     @Override
-    public boolean onDown(MotionEvent motionEvent)
-    {
+    public boolean onDown(MotionEvent motionEvent) {
         return true;
     }
 
     @Override
-    public boolean onDoubleTap(MotionEvent e)
-    {
+    public boolean onDoubleTap(MotionEvent e) {
         if (mInfoWindow.getX() < e.getX() && e.getX() < (mInfoWindow.getX() + mInfoWindow.getWidth()) &&
-            mInfoWindow.getY() < e.getY() && e.getY() < (mInfoWindow.getY() + mInfoWindow.getHeight()))
-        {
+                mInfoWindow.getY() < e.getY() && e.getY() < (mInfoWindow.getY() + mInfoWindow.getHeight())) {
             // Do nothing
-        }
-        else
-        {
+        } else {
             hide();
         }
 
         return true;
     }
 
+    private void clearCurrentDefinition() {
+        mKanjiGrid.clearSelection();
+        mDictResults.setText("");
+        // Optional: Animate the text switcher out or set visibility
+    }
+
     @Override
-    public boolean onSingleTapUp(MotionEvent e)
-    {
-        if (e.getY() < mKanjiGrid.getY() + mKanjiGrid.getHeight())
-        {
+    public boolean onSingleTapUp(MotionEvent e) {
+        // Logic: If the tap hits a specific character, that View handles it and returns
+        // true.
+        // If we reach here, it means we clicked empty space or the background.
+
+        // Check if click is inside the KanjiGrid area (but missed a char) or ScrollView
+        if (e.getY() < mKanjiGrid.getY() + mKanjiGrid.getHeight()) {
             int triggerAreaSize = getViewWidth() / 8;
-            if (e.getX() > getViewWidth() - triggerAreaSize)
-            {
+
+            // Check for scroll zones first
+            if (e.getX() > getViewWidth() - triggerAreaSize) {
                 mKanjiGrid.scrollNext();
-            }
-            else if (e.getX() < triggerAreaSize)
-            {
+            } else if (e.getX() < triggerAreaSize) {
                 mKanjiGrid.scrollPrev();
+            } else {
+                // Clicked inside grid but not on a char (blank space)
+                clearCurrentDefinition();
             }
         }
+        // Check if click is inside the InfoWindow background but not on the grid
         else if (mInfoWindow.getX() < e.getX() && e.getX() < (mInfoWindow.getX() + mInfoWindow.getWidth()) &&
-                 mInfoWindow.getY() < e.getY() && e.getY() < (mInfoWindow.getY() + mInfoWindow.getHeight()))
-        {
-            // Do nothing
-        }
-        else
-        {
+                mInfoWindow.getY() < e.getY() && e.getY() < (mInfoWindow.getY() + mInfoWindow.getHeight())) {
+            // Clicked inside the text result area (but not a link/interaction)
+            // Decide if you want this to close definition or do nothing.
+            // For now: clear definition if it's just blank space in the text area
+            // clearCurrentDefinition();
+
+            // OR keep existing behavior (Do nothing)
+        } else {
+            // Clicked outside the floating window entirely -> Close Window
             hide();
         }
 
@@ -259,14 +261,13 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     }
 
     @Override
-    public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1)
-    {
-        if (motionEvent == null || motionEvent1 == null){
+    public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+        if (motionEvent == null || motionEvent1 == null) {
             return false;
         }
 
         params.y = (int) (motionEvent1.getRawY() - motionEvent.getRawY());
-        if (params.y > 0){
+        if (params.y > 0) {
             params.y = 0;
         }
         windowManager.updateViewLayout(window, params);
@@ -275,9 +276,8 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     }
 
     @Override
-    public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1)
-    {
-        if (motionEvent == null || motionEvent1 == null){
+    public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+        if (motionEvent == null || motionEvent1 == null) {
             return false;
         }
 
@@ -286,8 +286,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         Log.d(TAG, String.format("Fling strength: %f", v1 / mMaxFlingVelocity));
         Log.d(TAG, String.format("Distance moved: %f", distanceMoved));
 
-        if ((v1 / mMaxFlingVelocity) < FLICK_THRESHOLD)
-        {
+        if ((v1 / mMaxFlingVelocity) < FLICK_THRESHOLD) {
             hide();
             return true;
         }
@@ -296,65 +295,58 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     }
 
     @Override
-    public void jmResultsCallback(List<JmSearchResult> results, SearchInfo search)
-    {
+    public void jmResultsCallback(List<JmSearchResult> results, SearchInfo search) {
         windowCoordinator.getWindow(Constants.WINDOW_INSTANT_KANJI).hide();
 
-        if (results.size() > 0)
-        {
+        if (results.size() > 0) {
             displayResults(results);
 
-            if (search.getSquareChar().getUserTouched() && !mSearchedChars.contains(search.getSquareChar()))
-            {
-                //windowCoordinator.<HistoryWindow>getWindowOfType(Constants.WINDOW_HISTORY).addResult(search.getSquareChar(), results);
+            if (search.getSquareChar().getUserTouched() && !mSearchedChars.contains(search.getSquareChar())) {
+                // windowCoordinator.<HistoryWindow>getWindowOfType(Constants.WINDOW_HISTORY).addResult(search.getSquareChar(),
+                // results);
                 mSearchedChars.add(search.getSquareChar());
             }
         }
 
         // Highlights words in the window as long as they match
         int start = search.getIndex() - mKanjiGrid.getOffset();
-        if (results.size() > 0){
+        if (results.size() > 0) {
             String kanji = results.get(0).getWord();
-            for (int i = start; i < start + kanji.codePointCount(0, kanji.length()); i++){
-                if (i >= mKanjiGrid.getKanjiViewList().size()){
+            for (int i = start; i < start + kanji.codePointCount(0, kanji.length()); i++) {
+                if (i >= mKanjiGrid.getKanjiViewList().size()) {
                     break;
                 }
                 mKanjiGrid.getKanjiViewList().get(i).highlight();
             }
-        }
-        else {
+        } else {
             mKanjiGrid.getKanjiViewList().get(start).highlight();
         }
     }
 
     @Override
-    public void recalculateKanjiViews()
-    {
+    public void recalculateKanjiViews() {
         mKanjiGrid.recalculateKanjiViews();
     }
 
-    private void displayResults(List<JmSearchResult> jmResults)
-    {
+    private void displayResults(List<JmSearchResult> jmResults) {
         StringBuilder sb = new StringBuilder();
 
-        for (JmSearchResult jmSearchResult : jmResults)
-        {
+        for (JmSearchResult jmSearchResult : jmResults) {
             sb.append(jmSearchResult.getEntry().getKanji());
 
-            if (!jmSearchResult.getEntry().getReadings().isEmpty()){
-                if (Constants.DB_JMDICT_NAME.equals(jmSearchResult.getEntry().getDictionary()))
-                {
+            if (!jmSearchResult.getEntry().getReadings().isEmpty()) {
+                if (Constants.DB_JMDICT_NAME.equals(jmSearchResult.getEntry().getDictionary())) {
                     sb.append(" (");
-                }
-                else {
+                } else {
                     sb.append(" ");
                 }
                 sb.append(jmSearchResult.getEntry().getReadings());
-                if (Constants.DB_JMDICT_NAME.equals(jmSearchResult.getEntry().getDictionary())) sb.append(")");
+                if (Constants.DB_JMDICT_NAME.equals(jmSearchResult.getEntry().getDictionary()))
+                    sb.append(")");
             }
 
             String deinfReason = jmSearchResult.getDeinfInfo().getReason();
-            if (deinfReason != null && !deinfReason.isEmpty()){
+            if (deinfReason != null && !deinfReason.isEmpty()) {
                 sb.append(String.format(" %s", deinfReason));
             }
 
@@ -363,28 +355,26 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
             sb.append("\n\n");
         }
 
-        if (sb.length() > 2)
-        {
+        if (sb.length() > 2) {
             sb.setLength(sb.length() - 2);
         }
 
         mDictResults.setText(sb.toString());
     }
 
-    private String getMeaning(EntryOptimized entry)
-    {
+    private String getMeaning(EntryOptimized entry) {
         String[] meanings = entry.getMeanings().split("\ufffc", -1);
         String[] pos = entry.getPos().split("\ufffc", -1);
 
         StringBuilder sb = new StringBuilder();
 
-        for (int i = 0; i < meanings.length; i++){
-            if (i != 0){
+        for (int i = 0; i < meanings.length; i++) {
+            if (i != 0) {
                 sb.append(" ");
             }
             sb.append(LangUtils.Companion.ConvertIntToCircledNum(i + 1));
             sb.append(" ");
-            if (Constants.DB_JMDICT_NAME.equals(entry.getDictionary()) && !pos[i].isEmpty()){
+            if (Constants.DB_JMDICT_NAME.equals(entry.getDictionary()) && !pos[i].isEmpty()) {
                 sb.append(String.format("(%s) ", pos[i]));
             }
             sb.append(meanings[i]);
@@ -393,6 +383,3 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         return sb.toString();
     }
 }
-
-
-

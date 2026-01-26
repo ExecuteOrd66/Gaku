@@ -15,7 +15,7 @@ public class EntryOptimized implements Comparable<EntryOptimized> {
     private Integer id;
 
     @Expose
-    @DatabaseField
+    @DatabaseField(index = true)
     private String kanji;
 
     @Expose
@@ -44,7 +44,7 @@ public class EntryOptimized implements Comparable<EntryOptimized> {
 
     private boolean onlyKana = false;
 
-    public EntryOptimized(){
+    public EntryOptimized() {
     }
 
     public String getKanji() {
@@ -55,10 +55,8 @@ public class EntryOptimized implements Comparable<EntryOptimized> {
         this.kanji = kanji;
     }
 
-    public String getReadings()
-    {
-        if (readings == null)
-        {
+    public String getReadings() {
+        if (readings == null) {
             return "";
         }
         return readings;
@@ -76,17 +74,14 @@ public class EntryOptimized implements Comparable<EntryOptimized> {
         this.meanings = meanings;
     }
 
-    public String getPos()
-    {
-        if (pos == null)
-        {
+    public String getPos() {
+        if (pos == null) {
             return "";
         }
         return pos;
     }
 
-    public void setPos(String pos)
-    {
+    public void setPos(String pos) {
         this.pos = pos;
     }
 
@@ -98,55 +93,42 @@ public class EntryOptimized implements Comparable<EntryOptimized> {
         this.onlyKana = onlyKana;
     }
 
-    public boolean isPrimaryEntry()
-    {
+    public boolean isPrimaryEntry() {
         return primaryEntry;
     }
 
-    public void setPrimaryEntry(boolean altForm)
-    {
+    public void setPrimaryEntry(boolean altForm) {
         primaryEntry = altForm;
     }
 
-    public String getPriorities()
-    {
-        if (priorities == null)
-        {
+    public String getPriorities() {
+        if (priorities == null) {
             return "";
         }
         return priorities;
     }
 
-    public void setPriorities(String priorities)
-    {
+    public void setPriorities(String priorities) {
         this.priorities = priorities;
     }
 
-    public String getDictionary()
-    {
+    public String getDictionary() {
         return dictionary;
     }
 
-    public void setDictionary(String dictionary)
-    {
+    public void setDictionary(String dictionary) {
         this.dictionary = dictionary;
     }
 
     // Sort by kanji length for results
     @Override
     public int compareTo(EntryOptimized another) {
-        if (this.kanji.length() > another.getKanji().length()){
+        if (this.kanji.length() > another.getKanji().length()) {
             return -1;
-        }
-        else if (this.kanji.length() == another.getKanji().length()){
+        } else if (this.kanji.length() == another.getKanji().length()) {
             return 0;
-        }
-        else {
+        } else {
             return 1;
         }
     }
 }
-
-
-
-

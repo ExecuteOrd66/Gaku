@@ -73,7 +73,7 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
         addView(mKanjiTextView)
 
         mIconImageView = ImageView(mContext)
-        mIconImageView.visibility = INVISIBLE
+        mIconImageView.visibility = GONE
         addView(mIconImageView)
     }
 
@@ -104,11 +104,16 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
 
     fun highlight()
     {
-        background = ContextCompat.getDrawable(mContext, R.drawable.bg_translucent_border_0_blue_blue)
+        // Use the new box drawable
+        background = ContextCompat.getDrawable(mContext, R.drawable.bg_word_selection)
+        
+        // Optional: Add padding to the text view inside to prevent text from touching borders
+        // if the box feels too tight.
     }
 
     fun highlightLight()
     {
+        // A lighter version for single selection if desired, or reuse the same box
         background = ContextCompat.getDrawable(mContext, R.drawable.bg_transparent_border_0_nil_default)
     }
 
@@ -116,6 +121,7 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
     {
         background = null
     }
+
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int)
     {
@@ -143,7 +149,7 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
                 mScrollStartEvent = null
 
                 mKanjiTextView.visibility = View.VISIBLE
-                mIconImageView.visibility = View.INVISIBLE
+                mIconImageView.visibility = View.GONE
 
                 val choiceResult = mKanjiChoiceWindow.onSquareScrollEnd(e)
                 when (choiceResult.first)

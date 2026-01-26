@@ -64,16 +64,25 @@ open class SquareGridView : ViewGroup
         val cellWidthSpec = View.MeasureSpec.makeMeasureSpec(squareCellSize, View.MeasureSpec.EXACTLY)
         val cellHeightSpec = View.MeasureSpec.makeMeasureSpec(squareCellSize, View.MeasureSpec.EXACTLY)
 
-        val count = childCount
+         val count = childCount
+        var visibleCount = 0 // Track actual visible items
+
         for (index in 0 until count)
         {
             val child = getChildAt(index)
-            child.measure(cellWidthSpec, cellHeightSpec)
+            if (child.visibility != View.GONE) {
+                child.measure(cellWidthSpec, cellHeightSpec)
+                visibleCount++
+            }
         }
 
-        // set width to squareCellSize * count if width is smaller than screen, and just screen width if larger
-        val x = View.resolveSize(squareCellSize * count, widthMeasureSpec)
-        mRows = Math.ceil(mItemCount.toDouble() / (x / squareCellSize).toDouble()).toInt()
+        // Use visibleCount instead of count for calculating rows
+        val x = View.resolveSize(squareCellSize * visibleCount, widthMeasureSpec)
+        
+        // Check for 0 to avoid divide by zero if no items visible
+        val columns = if (x / squareCellSize > 0) x / squareCellSize else 1
+        
+        mRows = Math.ceil(mItemCount.toDouble() / columns.toDouble()).toInt()
         mRows = if (mRows <= 0) 1 else mRows
 
         when (mRowLimit)
@@ -84,7 +93,6 @@ open class SquareGridView : ViewGroup
         }
 
         val y = View.resolveSize(squareCellSize * mRows, heightMeasureSpec)
-
         setMeasuredDimension(x, y)
     }
 
@@ -97,14 +105,19 @@ open class SquareGridView : ViewGroup
             columns = 1
         }
 
-        var rows = 1
+         var rows = 1
         var x = xStart
         var y = 0
         var i = 0
         val count = childCount
+        
         for (index in 0 until count)
         {
             val child = getChildAt(index)
+            
+            // ADD THIS CHECK: Skip layout for hidden views
+            if (child.visibility == View.GONE) continue
+
             val w = child.measuredWidth
             val h = child.measuredHeight
             val left = x + (squareCellSize - w) / 2
