@@ -176,18 +176,15 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
     override fun onUp(e: MotionEvent): Boolean
     {
-        Log.d(TAG, String.format("onUp - mInLongPress: %b | mProcessingPreview: %b | mProcessingOcr: %b", mInLongPress, mProcessingPreview, mProcessingOcr))
-
+        // Added checks to prevent processing preview if OCR just started
         if (!mInLongPress && !mProcessingPreview && !mProcessingOcr)
         {
-            Log.d(TAG, "onUp - SetPreviewImage")
             setBorderStyle(e)
             mProcessingPreview = true
             setCroppedScreenshot()
         }
 
         mInLongPress = false
-
         return true
     }
 
@@ -337,32 +334,65 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
     private fun performOcr(instant: Boolean)
     {
+        // 1. Prevent spamming
+        if (mProcessingOcr) return
+
         mProcessingOcr = true
+        mLastDoubleTapTime = System.currentTimeMillis() // Update time to prevent onUp/Resize interference
 
-        try
-        {
-            if (!instant)
+        // 2. Show feedback IMMEDIATELY so the user knows it registered
+        showLoadingAnimation()
+
+        // 3. Calculate coordinates on UI thread (safe)
+        val viewPos = IntArray(2)
+        mWindowBox.getLocationOnScreen(viewPos)
+        val box = BoxParams(viewPos[0], viewPos[1], params.width, params.height)
+
+        // 4. Run heavy lifting on Background Thread
+        Thread {
+            try
             {
-                while (!mOcr.isReadyForOcr)
+                // Wait for OCR engine to be ready (non-blocking for UI)
+                if (!instant)
                 {
-                    mOcr.cancel()
-                    Thread.sleep(10)
+                    var attempts = 0
+                    // Wait up to 1 second for engine to free up
+                    while (!mOcr.isReadyForOcr && attempts < 20)
+                    {
+                        mOcr.cancel()
+                        Thread.sleep(50)
+                        attempts++
+                    }
                 }
-            }
 
-            if (mScreenshotForOcr == null)
+                // 5. Generate a FRESH screenshot specifically for this action
+                // Do not rely on mScreenshotForOcr being populated by onUp
+                val ocrData = getOcrData(box)
+
+                if (ocrData == null || ocrData.crop == null || ocrData.orig == null || ocrData.params == null)
+                {
+                    // Failed to grab screen? Reset UI
+                    stopLoadingAnimation(instant)
+                    return@Thread
+                }
+
+                // 6. Send to OCR Engine
+                // We create a new OcrParams object directly
+                mOcr.runTess(OcrParams(
+                    ocrData.crop,
+                    ocrData.orig,
+                    ocrData.params,
+                    ocrData.params.x,
+                    ocrData.params.y,
+                    instant
+                ))
+
+            } catch (e: Exception)
             {
-                mProcessingOcr = false
-                return
+                e.printStackTrace()
+                stopLoadingAnimation(instant)
             }
-
-            // Note: Changed name to runTess to runTess (user can rename method in OcrRunnable to match if desired, 
-            // but for now relying on previous OcrRunnable code which had runTess)
-            mOcr.runTess(OcrParams(mScreenshotForOcr!!.crop!!, mScreenshotForOcr!!.crop!!, mScreenshotForOcr!!.params!!, mScreenshotForOcr!!.params!!.x, mScreenshotForOcr!!.params!!.y, instant))
-        } catch (e: Exception)
-        {
-            e.printStackTrace()
-        }
+        }.start()
     }
 
     // FIX: Renamed from getter to normal function, accepts box params explicitly
