@@ -20,10 +20,6 @@ public class TextAnalyzer {
         this.parserFactory = SentenceParserFactory.getInstance(context);
     }
 
-    /**
-     * Processes ML Kit Text blocks and returns a list of ParsedWords with layout
-     * info.
-     */
     public ParsedResult analyze(Text mlKitText, DisplayDataOcr displayData, long ocrTime) {
         List<ParsedWord> parsedWords = new ArrayList<>();
         List<ParsedLine> parsedLines = new ArrayList<>();
@@ -60,16 +56,17 @@ public class TextAnalyzer {
         for (ParsedWord word : words) {
             String surface = word.getSurface();
 
-            // FIX: Only skip newlines if the current word itself is NOT a newline.
-            // Parsers like Kuromoji return "\n" as a word, while Jiten might skip it.
-            // This ensures we stay in sync with fullText.
+            // Skip newlines/whitespace in the SOURCE text that aren't part of the word
+            // But we must NOT skip symbols blindly.
+
+            // Only skip leading newlines if the current parsed word is NOT a newline
+            // itself.
             while (charIndex < fullText.length()
                     && fullText.charAt(charIndex) == '\n'
                     && !surface.startsWith("\n")) {
                 charIndex++;
             }
 
-            // Defensive check to prevent crash if tokenizer drift occurs
             if (charIndex >= fullText.length()) {
                 break;
             }
@@ -96,32 +93,32 @@ public class TextAnalyzer {
         Rect unionRect = null;
         int symIdx = 0;
 
-        // Validation to prevent StringIndexOutOfBoundsException
         if (startIndex < 0 || startIndex + length > fullText.length()) {
             return new Rect(0, 0, 0, 0);
         }
 
-        // Skip characters in fullText until we reach startIndex, accounting for
-        // newlines that aren't in symbols
+        // Count how many non-whitespace characters exist before startIndex
+        // This ensures we align with the Symbol list which doesn't include whitespace.
         for (int i = 0; i < startIndex; i++) {
-            if (fullText.charAt(i) != '\n') {
+            if (!Character.isWhitespace(fullText.codePointAt(i))) {
                 symIdx++;
             }
         }
 
-        // Collect symbols for the length of the word
         int charsToCollect = length;
-        while (charsToCollect > 0 && symIdx < symbols.size()) {
-            // Find next non-newline char in fullText to see if it corresponds to current
-            // symbol
-            int nextTargetCharIdx = startIndex + (length - charsToCollect);
-            while (nextTargetCharIdx < fullText.length() && fullText.charAt(nextTargetCharIdx) == '\n') {
-                nextTargetCharIdx++;
+        int currentTextIdx = startIndex;
+
+        while (charsToCollect > 0 && symIdx < symbols.size() && currentTextIdx < fullText.length()) {
+
+            // If the text character is whitespace, it won't have a corresponding symbol.
+            // Consume the text character but do not advance symIdx.
+            if (Character.isWhitespace(fullText.codePointAt(currentTextIdx))) {
+                currentTextIdx++;
+                charsToCollect--;
+                continue;
             }
 
-            if (nextTargetCharIdx >= fullText.length())
-                break;
-
+            // Map symbol to current char
             Text.Symbol symbol = symbols.get(symIdx);
             Rect symbolRect = symbol.getBoundingBox();
             if (symbolRect != null) {
@@ -131,7 +128,9 @@ public class TextAnalyzer {
                     unionRect.union(symbolRect);
                 }
             }
+
             symIdx++;
+            currentTextIdx++;
             charsToCollect--;
         }
 
@@ -140,5 +139,4 @@ public class TextAnalyzer {
         }
         return unionRect;
     }
-
 }

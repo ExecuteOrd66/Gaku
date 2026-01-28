@@ -64,7 +64,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
     private var mCommonParser: CommonParser? = null
 
-    // Inner class used by getOcrData to return results locally
     private inner class ScreenshotForOcr(val crop: Bitmap?, val orig: Bitmap?, val params: BoxParams?) {
         fun recycle() {
             if (crop != null && !crop.isRecycled) crop.recycle()
@@ -214,7 +213,8 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             return true
         }
 
-        hideInstantWindows()
+        // Removed default call to hideInstantWindows here to prevent jitter closing.
+        // It's now handled explicitly in onUp if clicking blank space.
 
         if (e.action == MotionEvent.ACTION_DOWN) {
             // Capture offsets for manual movement
@@ -234,10 +234,13 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
             // Manual movement logic
             if (mIsEditMode) {
-                // Clear overlay only if moving
+                // Only clear overlay if we are actually moving the window
                 mImageView.setImageResource(0)
                 mWordOverlay.visibility = View.GONE
                 updateWindowFlags(false)
+                
+                // Also close any popup if moving
+                hideInstantWindows()
 
                 params.x = mDragOffsetX + e.rawX.toInt()
                 params.y = mDragOffsetY + e.rawY.toInt()
@@ -262,6 +265,28 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             if (mIsEditMode) {
                 mIsEditMode = false
                 mPresetBar.postDelayed({ mPresetBar.visibility = View.GONE }, 2000)
+            } else {
+                // If not in edit mode (just a tap)
+                // Check if we hit a word? WordOverlay handles clicks internally via its own OnTouch listener.
+                // However, WordOverlay is transparent. 
+                // If the click falls through to here, it means we clicked "blank space" on the capture window.
+                
+                // But wait, WordOverlayView fills the parent. 
+                // We need to know if WordOverlay handled it. 
+                // Actually, since WordOverlay is on top, if we receive onTouch here in Window, 
+                // it implies WordOverlay didn't consume it?
+                // No, Window's onTouch is called by WindowView's onTouchEvent which calls mDetector.
+                
+                // Simplest fix: Just hide the popup (WordDetailWindow) here.
+                // If a word was clicked, WordDetailWindow will be shown by onWordClicked immediately after.
+                // But if we hide it here, it might flicker or close immediately.
+                // A better approach is to check if WordOverlay handled the tap.
+                
+                // Let's rely on WordOverlayView logic. If it didn't find a word, it does nothing.
+                // If we want "Click blank space to close popup", we can just call hideInstantWindows().
+                // However, we MUST NOT clear the results (mWordOverlay.visibility = GONE) on tap.
+                
+                hideInstantWindows()
             }
             onUp(e)
             return true
@@ -343,7 +368,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             {
                 mImageView.imageAlpha = 255
                 mImageView.setImageResource(0)
-                // Member variable mScreenshotForOcr is removed, so no recycling needed here
             }
         }
     }
@@ -380,6 +404,9 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
     private fun onWordClicked(word: ParsedWord)
     {
+        // Close existing popup first (optional, but cleaner)
+        hideInstantWindows()
+
         val wordDetailWindow = windowCoordinator.getWindowOfType<WordDetailWindow>(WINDOW_WORD_DETAIL)
         wordDetailWindow.setWord(word)
         wordDetailWindow.setOnStatusChangeListener {

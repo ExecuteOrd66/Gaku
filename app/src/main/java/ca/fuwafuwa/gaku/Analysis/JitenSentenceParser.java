@@ -25,7 +25,6 @@ public class JitenSentenceParser implements SentenceParser {
     public List<ParsedWord> parse(String text) {
         List<ParsedWord> parsedWords = new ArrayList<>();
         try {
-            // Using the high-level parse method we implemented in JitenApiClient
             List<JitenDTOs.DeckWordDto> deckWords = apiClient.parse(text);
 
             if (deckWords == null) {
@@ -33,7 +32,6 @@ public class JitenSentenceParser implements SentenceParser {
             }
 
             for (JitenDTOs.DeckWordDto deckWord : deckWords) {
-                // If wordId is 0, it's likely a gap/punctuation that couldn't be parsed
                 if (deckWord.wordId <= 0) {
                     parsedWords.add(new ParsedWord(deckWord.originalText, "", "", null));
                     continue;
@@ -53,7 +51,6 @@ public class JitenSentenceParser implements SentenceParser {
                     ParsedWord word = convertToParsedWord(deckWord, wordDetails);
                     parsedWords.add(word);
                 } else {
-                    // Fallback
                     parsedWords.add(new ParsedWord(deckWord.originalText, "", "", null));
                 }
             }
@@ -67,16 +64,13 @@ public class JitenSentenceParser implements SentenceParser {
     private ParsedWord convertToParsedWord(JitenDTOs.DeckWordDto deckWord, JitenDTOs.WordDto wordDetails) {
         String surface = deckWord.originalText;
         String reading = "";
-        String baseForm = "";
 
         if (wordDetails.mainReading != null) {
             reading = wordDetails.mainReading.text;
         }
 
-        ParsedWord word = new ParsedWord(surface, reading, baseForm, null);
+        ParsedWord word = new ParsedWord(surface, reading, surface, null);
 
-        // CRITICAL: Map IDs into metadata so ReviewController can find them for SRS
-        // buttons
         word.putMetadata("wordId", wordDetails.wordId);
         word.putMetadata("readingIndex", deckWord.readingIndex);
 
@@ -93,19 +87,20 @@ public class JitenSentenceParser implements SentenceParser {
             word.setMeaningPos(meaningPos);
         }
 
-        if (wordDetails.pitchAccents != null) {
-            StringBuilder sb = new StringBuilder();
-            for (Integer p : wordDetails.pitchAccents) {
-                if (sb.length() > 0)
-                    sb.append(",");
-                sb.append(p);
-            }
-            word.setPitchPattern(sb.toString());
+        // Convert Jiten numeric pitch accent to binary string "01001"
+        if (wordDetails.pitchAccents != null && !wordDetails.pitchAccents.isEmpty()) {
+            // Jiten usually returns the downstep location (mora index).
+            // 0 = Heiban (Flat)
+            // 1 = Atamadaka (Head high)
+            // n = Nakadaka/Odaka (Downstep after nth mora)
+
+            // We generally take the first pitch accent if multiple are listed
+            int accent = wordDetails.pitchAccents.get(0);
+            String pattern = convertPitchToBinary(accent, reading);
+            word.setPitchPattern(pattern);
         }
 
         if (wordDetails.knownStates != null && !wordDetails.knownStates.isEmpty()) {
-            // knownStates: [0: New, 1: Young, 2: Mature, 3: Blacklisted, 4: Due, 5:
-            // Mastered]
             int jitenState = wordDetails.knownStates.get(0);
             int mappedState = 0;
 
@@ -134,5 +129,44 @@ public class JitenSentenceParser implements SentenceParser {
 
         word.setDictionary("Jiten.moe");
         return word;
+    }
+
+    private String convertPitchToBinary(int accent, String reading) {
+        if (reading == null || reading.isEmpty())
+            return "";
+
+        // Remove small kana or prolonged sound marks if necessary for accurate mora
+        // counting,
+        // but for visualization mapping to the string, usually 1 char = 1 slot in the
+        // graph.
+        // Assuming simple 1-to-1 char mapping for now.
+
+        int length = reading.length();
+        StringBuilder sb = new StringBuilder();
+
+        if (accent == 0) {
+            // Heiban: L H H H ...
+            sb.append("0");
+            for (int i = 1; i < length; i++) {
+                sb.append("1");
+            }
+        } else if (accent == 1) {
+            // Atamadaka: H L L L ...
+            sb.append("1");
+            for (int i = 1; i < length; i++) {
+                sb.append("0");
+            }
+        } else {
+            // Nakadaka/Odaka: L H H ... (drop after accent) L ...
+            sb.append("0"); // First is low
+            for (int i = 1; i < length; i++) {
+                if (i < accent) {
+                    sb.append("1"); // High until downstep
+                } else {
+                    sb.append("0"); // Low after downstep
+                }
+            }
+        }
+        return sb.toString();
     }
 }

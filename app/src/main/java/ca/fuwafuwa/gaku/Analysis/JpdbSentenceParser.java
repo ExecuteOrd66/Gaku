@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,15 +33,17 @@ public class JpdbSentenceParser implements SentenceParser {
                 return parsedWords;
             }
 
+            // Convert text to bytes once to handle UTF-8 offsets correctly
+            byte[] textBytes = text.getBytes(StandardCharsets.UTF_8);
+
             // tokens[0] corresponds to the first string in the request input list
             List<List<Object>> tokensForText = response.tokens.get(0);
 
             for (List<Object> tokenTuple : tokensForText) {
                 // [vocab_index, pos, length, furigana]
                 int vocabIndex = ((Number) tokenTuple.get(0)).intValue();
-                // We ignore position/length here as TextAnalyzer re-calculates rects based on
-                // chars.
-                // Using spelling from vocab is safer.
+                int position = ((Number) tokenTuple.get(1)).intValue(); // Byte offset
+                int length = ((Number) tokenTuple.get(2)).intValue(); // Byte length
 
                 if (vocabIndex >= response.vocabulary.size())
                     continue;
@@ -51,10 +54,19 @@ public class JpdbSentenceParser implements SentenceParser {
 
                 int vid = ((Number) vocabTuple.get(0)).intValue();
                 int sid = ((Number) vocabTuple.get(1)).intValue();
-                String spelling = (String) vocabTuple.get(3);
+
+                // Extract actual surface text based on token position (Byte Slicing)
+                String surface = "";
+                if (position >= 0 && position + length <= textBytes.length) {
+                    surface = new String(textBytes, position, length, StandardCharsets.UTF_8);
+                } else {
+                    surface = (String) vocabTuple.get(3); // Fallback to dictionary spelling
+                }
+
+                String lemma = (String) vocabTuple.get(3);
                 String reading = (String) vocabTuple.get(4);
 
-                ParsedWord word = new ParsedWord(spelling, reading, spelling, null);
+                ParsedWord word = new ParsedWord(surface, reading, lemma, null);
                 word.putMetadata("vid", vid);
                 word.putMetadata("sid", sid);
 
@@ -64,11 +76,6 @@ public class JpdbSentenceParser implements SentenceParser {
                 word.setStatus(mapJpdbStatus(stateObj, dueAtObj));
 
                 // Meanings
-                // meanings_chunks is List<List<String>> (glosses per meaning)
-                // meanings_pos is List<List<String>> (POS per meaning)
-
-                // We need to flatten or just take the first meaning's glosses?
-                // ParsedWord expects List<String> meanings.
                 List<String> userMeanings = new ArrayList<>();
                 List<String> userPos = new ArrayList<>();
 
@@ -91,7 +98,6 @@ public class JpdbSentenceParser implements SentenceParser {
                         if (chunk instanceof List) {
                             List<?> poses = (List<?>) chunk;
                             for (Object pos : poses) {
-                                // Add unique POS?
                                 if (!userPos.contains(pos.toString())) {
                                     userPos.add(pos.toString());
                                 }
@@ -101,14 +107,18 @@ public class JpdbSentenceParser implements SentenceParser {
                 }
                 word.setMeaningPos(userPos);
 
-                // Pitch Accent
-                // JPDB returns pitch_accent as string[]? ["L", "H", "H"...] or similar?
-                // TS Definition: string[] | null
+                // Pitch Accent: Convert ["L", "H"] to "01"
                 if (vocabTuple.get(8) instanceof List) {
                     List<?> pitches = (List<?>) vocabTuple.get(8);
                     StringBuilder pitchStr = new StringBuilder();
                     for (Object p : pitches) {
-                        pitchStr.append(p.toString());
+                        String pVal = p.toString();
+                        if ("L".equals(pVal))
+                            pitchStr.append("0");
+                        else if ("H".equals(pVal))
+                            pitchStr.append("1");
+                        else
+                            pitchStr.append("0"); // Default low if unknown
                     }
                     word.setPitchPattern(pitchStr.toString());
                 }
@@ -133,12 +143,7 @@ public class JpdbSentenceParser implements SentenceParser {
                 return UserWord.STATUS_UNKNOWN;
 
             String primaryState = stateList.get(0).toString();
-            // Order of tuple matters?
-            // ['new']
-            // ['redundant', 'learning']
-            // ['locked', 'new']
 
-            // If first is 'locked' or 'redundant', check second?
             if (primaryState.equals("locked") || primaryState.equals("redundant")) {
                 if (stateList.size() > 1) {
                     primaryState = stateList.get(1).toString();
@@ -150,7 +155,6 @@ public class JpdbSentenceParser implements SentenceParser {
                     return UserWord.STATUS_UNKNOWN;
                 case "learning":
                 case "known":
-                    // Check interval threshold
                     return determineLearningOrMastered(dueAtObj);
                 case "never-forget":
                     return UserWord.STATUS_MASTERED;
@@ -174,7 +178,6 @@ public class JpdbSentenceParser implements SentenceParser {
             long now = System.currentTimeMillis() / 1000;
             long secondsUntilDue = dueAt - now;
 
-            // Threshold in days -> convert to seconds
             String thresholdStr = prefs.getString("pref_young_threshold", "21");
             int thresholdDays = 21;
             try {
@@ -190,7 +193,6 @@ public class JpdbSentenceParser implements SentenceParser {
                 return UserWord.STATUS_LEARNING;
             }
         }
-        // Fallback if due_at is missing for some reason
         return UserWord.STATUS_LEARNING;
     }
 }
