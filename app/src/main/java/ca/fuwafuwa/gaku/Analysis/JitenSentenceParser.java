@@ -25,35 +25,33 @@ public class JitenSentenceParser implements SentenceParser {
     public List<ParsedWord> parse(String text) {
         List<ParsedWord> parsedWords = new ArrayList<>();
         try {
-            List<JitenDTOs.DeckWordDto> deckWords = apiClient.parse(text);
-            if (deckWords == null) {
+            // Use the new Reader Parse endpoint (POST)
+            retrofit2.Response<List<JitenDTOs.DeckWordDto>> response = apiClient.getApi()
+                    .parse(apiClient.getAuthToken(), new JitenDTOs.ReaderParseRequest(text)).execute();
+
+            List<JitenDTOs.DeckWordDto> deckWords = response.body();
+            if (deckWords == null)
                 return parsedWords;
-            }
 
             for (JitenDTOs.DeckWordDto deckWord : deckWords) {
+                // Check cache for details
                 String cacheKey = deckWord.wordId + "_" + deckWord.readingIndex;
                 JitenDTOs.WordDto wordDetails = wordCache.get(cacheKey);
 
-                if (wordDetails == null) {
+                if (wordDetails == null && deckWord.wordId > 0) {
                     wordDetails = apiClient.getWordDetails(deckWord.wordId, deckWord.readingIndex);
-                    if (wordDetails != null) {
+                    if (wordDetails != null)
                         wordCache.put(cacheKey, wordDetails);
-                    }
                 }
 
                 if (wordDetails != null) {
-                    ParsedWord word = convertToParsedWord(deckWord, wordDetails);
-                    parsedWords.add(word);
+                    parsedWords.add(convertToParsedWord(deckWord, wordDetails));
                 } else {
-                    // Fallback or handle missing details?
-                    // For now, create a basic ParsedWord from DeckWordDto
-                    ParsedWord word = new ParsedWord(deckWord.originalText, "", "", null);
-                    parsedWords.add(word);
+                    parsedWords.add(new ParsedWord(deckWord.originalText, "", "", null));
                 }
             }
-
         } catch (IOException e) {
-            Log.e(TAG, "Failed to parse text via Jiten API", e);
+            Log.e(TAG, "Jiten Reader Parse Failed", e);
         }
         return parsedWords;
     }

@@ -91,18 +91,41 @@ public class ReviewController {
     }
 
     public void setJpdbFlag(ParsedWord word, String flag, boolean remove) {
-        // flag: "blacklist", "never-forget"
+        String backend = PreferenceManager.getDefaultSharedPreferences(context)
+                .getString("pref_parser_backend", "jiten");
+
         Map<String, Object> meta = word.getMetadata();
-        if (meta != null && meta.containsKey("vid") && meta.containsKey("sid")) {
-            int vid = (int) meta.get("vid");
-            int sid = (int) meta.get("sid");
-            JpdbDTOs.ModifyDeckRequest req = new JpdbDTOs.ModifyDeckRequest(flag, vid, sid);
+        if (meta == null)
+            return;
 
-            // JpdbApi: addVocabulary or removeVocabulary
-            // backend.ts: addToDeckAPI used for blacklist/never-forget too.
-            // "id" field in JSON body controls it.
+        if ("jiten".equals(backend)) {
+            if (meta.containsKey("wordId") && meta.containsKey("readingIndex")) {
+                int wordId = (int) meta.get("wordId");
+                int readingIndex = (int) meta.get("readingIndex");
 
-            callJpdbModify(req, !remove);
+                // Normalize flag for Jiten (never-forget -> neverForget)
+                String jitenFlag = flag.replace("-f", "F");
+
+                // If remove is true, we usually revert the state to "new" or 0
+                if (remove) {
+                    // Note: Check if your JitenApiClient/API supports a 'clear' or 'new' state
+                    jitenClient.setVocabularyState(wordId, readingIndex, "new");
+                } else {
+                    jitenClient.setVocabularyState(wordId, readingIndex, jitenFlag);
+                }
+            }
+        } else if ("jpdb".equals(backend)) {
+            if (meta.containsKey("vid") && meta.containsKey("sid")) {
+                int vid = (int) meta.get("vid");
+                int sid = (int) meta.get("sid");
+
+                // JPDB uses the "id" field in ModifyDeckRequest to determine the action
+                // flag here should be "blacklist" or "never-forget"
+                JpdbDTOs.ModifyDeckRequest req = new JpdbDTOs.ModifyDeckRequest(flag, vid, sid);
+
+                // callJpdbModify handles add vs remove via the API endpoint used
+                callJpdbModify(req, !remove);
+            }
         }
     }
 
@@ -118,15 +141,32 @@ public class ReviewController {
     }
 
     public void grade(ParsedWord word, String grade) {
-        // Grade: "nothing", "something", "hard", "good", "easy"
         String backend = PreferenceManager.getDefaultSharedPreferences(context)
                 .getString("pref_parser_backend", "jiten");
 
-        if ("jpdb".equals(backend)) {
-            // Review not implemented via API yet as discussed.
-            runOnMain("JPDB Review via API not supported. Please review on site.");
+        if ("jiten".equals(backend)) {
+            int wordId = (int) word.getMetadata("wordId");
+            int readingIndex = (int) word.getMetadata("readingIndex");
+
+            int rating = 3; // Default Good
+            switch (grade) {
+                case "nothing":
+                    rating = 1;
+                    break;
+                case "something":
+                case "hard":
+                    rating = 2;
+                    break;
+                case "good":
+                    rating = 3;
+                    break;
+                case "easy":
+                    rating = 4;
+                    break;
+            }
+
+            JitenApiClient.getInstance(context).rateWord(wordId, readingIndex, rating);
         } else {
-            // Anki
             openAnkiBrowser(word);
         }
     }
