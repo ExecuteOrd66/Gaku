@@ -9,7 +9,7 @@ public class JitenDTOs {
         public List<String> text;
 
         public ReaderParseRequest(String t) {
-            this.text = Collections.singletonList(t);
+            this.text = java.util.Collections.singletonList(t);
         }
     }
 

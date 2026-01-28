@@ -30,23 +30,33 @@ enum class TextDirection(val value: Int) {
     }
 }
 
-data class Prefs(val textDirectionSetting: TextDirection,
-                 val imageFilterSetting: Boolean,
-                 val instantModeSetting: Boolean,
-                 val showHideSetting: Boolean);
+data class Prefs(
+    val textDirectionSetting: TextDirection,
+    val imageFilterSetting: Boolean,
+    val instantModeSetting: Boolean,
+    val showHideSetting: Boolean,
+    val snapEnabled: Boolean,          // New
+    val showPresetBar: Boolean,       // New
+    val borderThickness: Int,         // New
+    val borderColor: String           // New
+)
 
-// NOTE: The defValue here should match the defValue of the BroadcastReceivers, otherwise
-// they will be out of sync the first time.
-fun getPrefs(context: Context): Prefs
-{
+fun getPrefs(context: Context): Prefs {
     val prefs = context.getSharedPreferences(GAKU_PREF_FILE, Context.MODE_PRIVATE)
+    val defaultPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
 
     return Prefs(
-            TextDirection.valueOf(prefs.getString(GAKU_PREF_TEXT_DIRECTION, TextDirection.AUTO.toString()).toString()),
-            prefs.getBoolean(GAKU_PREF_IMAGE_FILTER, true),
-            prefs.getBoolean(GAKU_PREF_INSTANT_MODE, true),
-            prefs.getBoolean(GAKU_PREF_SHOW_HIDE, true))
+        TextDirection.valueOf(prefs.getString(GAKU_PREF_TEXT_DIRECTION, TextDirection.AUTO.toString())!!),
+        prefs.getBoolean(GAKU_PREF_IMAGE_FILTER, true),
+        prefs.getBoolean(GAKU_PREF_INSTANT_MODE, true),
+        prefs.getBoolean(GAKU_PREF_SHOW_HIDE, true),
+        defaultPrefs.getBoolean(GAKU_PREF_SNAP_ENABLED, true),
+        defaultPrefs.getBoolean(GAKU_PREF_SHOW_PRESET_BAR, true),
+        defaultPrefs.getString(GAKU_PREF_BORDER_THICKNESS, "2")!!.toInt(),
+        defaultPrefs.getString(GAKU_PREF_BORDER_COLOR, "#0064ff")!!
+    )
 }
+
 
 fun toJson(obj: Any): String
 {
@@ -218,6 +228,3 @@ fun deleteScreenshotsOlderThanOneDay(path: String)
         Log.d(TAG, e.toString())
     }
 }
-
-
-

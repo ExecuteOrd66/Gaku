@@ -24,6 +24,19 @@ const val GAKU_PREF_FIRST_LAUNCH = "FirstLaunch"
 const val GAKU_PREF_TIMES_LAUNCHED = "TimesLaunched"
 const val GAKU_PREF_PLAY_STORE_RATED = "PlayStoreRated"
 
+const val GAKU_PREF_SNAP_ENABLED = "pref_snap_enabled"
+const val GAKU_PREF_BORDER_THICKNESS = "pref_border_thickness"
+const val GAKU_PREF_BORDER_COLOR = "pref_border_color"
+const val GAKU_PREF_SHOW_PRESET_BAR = "pref_show_preset_bar"
+
+// Preset definitions (REQ-007)
+enum class CapturePreset(val label: String, val widthDp: Int, val heightDp: Int) {
+    SINGLE_LINE("Line", 320, 45),
+    PARAGRAPH("Para", 250, 180),
+    SUBTITLE("Sub", 380, 65),
+    MANGA_BUBBLE("Bubble", 140, 140)
+}
+
 const val EXTRA_PROJECTION_RESULT_CODE = "ca.fuwafuwa.gaku.PROJECTION_RESULT_CODE"
 const val EXTRA_PROJECTION_RESULT_INTENT = "ca.fuwafuwa.gaku.PROJECTION_RESULT_INTENT"
 

@@ -34,6 +34,9 @@ public class WordOverlayView extends RelativeLayout {
     private static final String TAG = "WordOverlayView";
     private List<ParsedWord> words = new ArrayList<>();
     private List<ParsedLine> lines = new ArrayList<>();
+    // Store orientation per word for AUTO mode
+    private List<Boolean> wordOrientations = new ArrayList<>();
+
     private Paint paintUnknown;
     private Paint paintLearning;
     private Paint paintKnown;
@@ -98,13 +101,12 @@ public class WordOverlayView extends RelativeLayout {
 
         paintDismissed = new Paint();
         paintDismissed.setColor(ContextCompat.getColor(getContext(), R.color.status_dismissed));
-        paintDismissed.setStrokeWidth(0); // Invisible? Or just do not draw.
+        paintDismissed.setStrokeWidth(6);
         paintDismissed.setStyle(Paint.Style.STROKE);
-        paintDismissed.setAlpha(0); // Fully transparent
         paintDismissed.setAlpha(128);
 
         paintTouch = new Paint();
-        paintTouch.setColor(0x33000000); // Semi-transparent black for touch feedback
+        paintTouch.setColor(0x33000000);
         paintTouch.setStyle(Paint.Style.FILL);
     }
 
@@ -116,8 +118,44 @@ public class WordOverlayView extends RelativeLayout {
     public void setParsedResult(ParsedResult result) {
         this.words = result.getWords();
         this.lines = result.getLines();
+        calculateOrientations();
         updateTextViews();
-        invalidate(); // Redraw underlines
+        invalidate();
+    }
+
+    private void calculateOrientations() {
+        wordOrientations.clear();
+        for (ParsedWord word : words) {
+            Rect wRect = word.getBoundingBox();
+            boolean isVertical = false;
+
+            // Heuristic: If a word is inside a vertical line, it is vertical.
+            // A line is vertical if height > width.
+
+            int cx = wRect.centerX();
+            int cy = wRect.centerY();
+
+            boolean lineFound = false;
+            for (ParsedLine line : lines) {
+                Rect lRect = line.getBoundingBox();
+                if (lRect.contains(cx, cy)) {
+                    if (lRect.height() > lRect.width()) {
+                        isVertical = true;
+                    }
+                    lineFound = true;
+                    break;
+                }
+            }
+
+            // Fallback if the word center isn't perfectly inside any line rect
+            if (!lineFound) {
+                if (wRect.height() > wRect.width()) {
+                    isVertical = true;
+                }
+            }
+
+            wordOrientations.add(isVertical);
+        }
     }
 
     private void updateTextViews() {
@@ -131,10 +169,8 @@ public class WordOverlayView extends RelativeLayout {
             tv.setTextIsSelectable(true);
             tv.setGravity(android.view.Gravity.CENTER_VERTICAL);
 
-            // Critical for alignment: Use a monospaced font or ensure fits
             tv.setTypeface(android.graphics.Typeface.MONOSPACE);
 
-            // Calculate font size to fit rect height
             float height = rect.height();
             tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, height * 0.95f);
             tv.setPadding(0, 0, 0, 0);
@@ -145,7 +181,6 @@ public class WordOverlayView extends RelativeLayout {
             lp.topMargin = rect.top + offset;
             tv.setLayoutParams(lp);
 
-            // Custom touch listener to handle both Selection (Long Press) and Word Taps
             tv.setOnTouchListener(new OnTouchListener() {
                 private long downTime;
 
@@ -155,12 +190,11 @@ public class WordOverlayView extends RelativeLayout {
                         downTime = System.currentTimeMillis();
                     } else if (event.getAction() == MotionEvent.ACTION_UP) {
                         if (System.currentTimeMillis() - downTime < 300) {
-                            // It's a short tap, find the word under the tap
                             handleTap(event.getRawX(), event.getRawY());
                             return true;
                         }
                     }
-                    return false; // Let TextView handle Long Press for selection
+                    return false;
                 }
             });
 
@@ -169,7 +203,6 @@ public class WordOverlayView extends RelativeLayout {
     }
 
     private void handleTap(float rawX, float rawY) {
-        // Convert screen coordinates to view coordinates
         int[] location = new int[2];
         getLocationOnScreen(location);
         int localX = (int) (rawX - location[0] - getOffset());
@@ -203,31 +236,45 @@ public class WordOverlayView extends RelativeLayout {
 
         int offset = getOffset();
         int gap = ca.fuwafuwa.gaku.GakuTools.dpToPx(getContext(), 1);
-        boolean isVertical = textDirection == ca.fuwafuwa.gaku.TextDirection.VERTICAL;
 
-        // Group segments by status
         java.util.Map<Integer, List<Float>> segmentsByStatus = new java.util.HashMap<>();
 
-        for (ParsedWord word : words) {
+        // Iterate by index to access corresponding orientation
+        for (int i = 0; i < words.size(); i++) {
+            ParsedWord word = words.get(i);
             int status = word.getStatus();
-            if (status == UserWord.STATUS_DISMISSED) {
-                continue;
-            }
 
             if (!segmentsByStatus.containsKey(status)) {
                 segmentsByStatus.put(status, new ArrayList<>());
             }
 
             Rect rect = word.getBoundingBox();
+
+            boolean isVertical;
+            if (textDirection == ca.fuwafuwa.gaku.TextDirection.VERTICAL) {
+                isVertical = true;
+            } else if (textDirection == ca.fuwafuwa.gaku.TextDirection.HORIZONTAL) {
+                isVertical = false;
+            } else {
+                // AUTO: Use pre-calculated line-based orientation
+                if (i < wordOrientations.size()) {
+                    isVertical = wordOrientations.get(i);
+                } else {
+                    isVertical = rect.height() > rect.width();
+                }
+            }
+
             List<Float> segments = segmentsByStatus.get(status);
 
             if (isVertical) {
+                // Vertical Line on the RIGHT side of the character
                 // x0, y0, x1, y1
                 segments.add((float) (rect.right + offset));
                 segments.add((float) (rect.top + offset + gap));
                 segments.add((float) (rect.right + offset));
                 segments.add((float) (rect.bottom + offset - gap));
             } else {
+                // Horizontal Line on the BOTTOM of the character
                 segments.add((float) (rect.left + offset + gap));
                 segments.add((float) (rect.bottom + offset - 2));
                 segments.add((float) (rect.right + offset - gap));
@@ -235,8 +282,6 @@ public class WordOverlayView extends RelativeLayout {
             }
         }
 
-        // Draw batched segments
-        long startTime = System.nanoTime();
         for (java.util.Map.Entry<Integer, List<Float>> entry : segmentsByStatus.entrySet()) {
             List<Float> floatList = entry.getValue();
             if (floatList.isEmpty())
@@ -250,8 +295,6 @@ public class WordOverlayView extends RelativeLayout {
             Paint paint = getPaintForStatus(entry.getKey());
             canvas.drawLines(pts, paint);
         }
-        long endTime = System.nanoTime();
-        Log.d(TAG, String.format("onDraw batched: %d segments in %.3f ms", words.size(), (endTime - startTime) / 1e6));
     }
 
     private Paint getPaintForStatus(int status) {
@@ -273,12 +316,8 @@ public class WordOverlayView extends RelativeLayout {
         }
     }
 
-    // Touch event handling is now mostly handled by the TextViews for clicks.
-    // However, we can keep the custom drawing in onDraw.
-    // The TextViews sit on top and will consume touches.
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        // We let the TextViews handle the touch first
         return false;
     }
 }

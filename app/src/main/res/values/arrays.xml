@@ -20,4 +20,30 @@
         <item>jiten</item>
         <item>jpdb</item>
     </string-array>
+
+    <string-array name="border_thickness_entries">
+        <item>Thin (1px)</item>
+        <item>Default (2px)</item>
+        <item>Thick (4px)</item>
+        <item>Extra Thick (6px)</item>
+    </string-array>
+    <string-array name="border_thickness_values">
+        <item>1</item>
+        <item>2</item>
+        <item>4</item>
+        <item>6</item>
+    </string-array>
+
+    <string-array name="border_color_entries">
+        <item>Gaku Blue</item>
+        <item>Ruby Red</item>
+        <item>Emerald Green</item>
+        <item>Highlight Yellow</item>
+    </string-array>
+    <string-array name="border_color_values">
+        <item>#0064ff</item>
+        <item>#ff0000</item>
+        <item>#00ff00</item>
+        <item>#ffff00</item>
+    </string-array>
 </resources>

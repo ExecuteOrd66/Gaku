@@ -2,15 +2,36 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/bg_transparent_border_0_nil_default" />
-    <RelativeLayout
-        android:id="@+id/capture_box"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+
+    <!-- Snap Guides  -->
+    <View android:id="@+id/guide_h" android:layout_width="match_parent" android:layout_height="1dp" 
+          android:background="#44FF0000" android:layout_gravity="center_vertical" android:visibility="gone"/>
+    <View android:id="@+id/guide_v" android:layout_width="1dp" android:layout_height="match_parent" 
+          android:background="#44FF0000" android:layout_gravity="center_horizontal" android:visibility="gone"/>
+
+    <RelativeLayout android:id="@+id/capture_box"
+        android:layout_width="match_parent" android:layout_height="match_parent"
         android:background="@drawable/bg_transparent_border_0_nil_ready" />
+
+    <!-- Corner Indicators -->
+    <View android:layout_width="6dp" android:layout_height="6dp" android:background="@color/blue_dark" android:layout_gravity="top|left"/>
+    <View android:layout_width="6dp" android:layout_height="6dp" android:background="@color/blue_dark" android:layout_gravity="top|right"/>
+    <View android:layout_width="6dp" android:layout_height="6dp" android:background="@color/blue_dark" android:layout_gravity="bottom|left"/>
+    <View android:layout_width="6dp" android:layout_height="6dp" android:background="@color/blue_dark" android:layout_gravity="bottom|right" android:backgroundTint="#FF0000"/> <!-- Resize corner -->
+
+    <!-- Preset Bar -->
+    <HorizontalScrollView
+        android:id="@+id/preset_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:background="#AA000000"
+        android:padding="2dp"
+        android:visibility="gone">
+        <LinearLayout android:id="@+id/preset_container" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    </HorizontalScrollView>
+
+
     <ImageView
         android:id="@+id/capture_image"
         android:layout_width="match_parent"

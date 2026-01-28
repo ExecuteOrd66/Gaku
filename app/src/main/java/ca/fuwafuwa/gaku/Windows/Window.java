@@ -14,12 +14,15 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
+import android.view.HapticFeedbackConstants;
+import android.view.ViewConfiguration;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import ca.fuwafuwa.gaku.Interfaces.Stoppable;
 import ca.fuwafuwa.gaku.GakuTools;
+import ca.fuwafuwa.gaku.Prefs;
 import ca.fuwafuwa.gaku.R;
 import ca.fuwafuwa.gaku.Windows.Interfaces.WindowListener;
 import ca.fuwafuwa.gaku.Windows.Views.ResizeView;
@@ -30,6 +33,13 @@ import static android.content.Context.WINDOW_SERVICE;
 public abstract class Window implements Stoppable, WindowListener {
 
     private static final String TAG = Window.class.getName();
+
+    private int mTouchSlop;
+    private boolean mIsDragging = false;
+    private float mInitialTouchX;
+    private float mInitialTouchY;
+    private boolean mSnappedX = false;
+    private boolean mSnappedY = false;
 
     public interface OnHeightKnown {
         void performAction();
@@ -110,6 +120,8 @@ public abstract class Window implements Stoppable, WindowListener {
                 });
 
         windowManager.addView(mDummyViewForSize, heightViewParams);
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+
     }
 
     public void reInit(ReinitOptions options) {
@@ -126,6 +138,63 @@ public abstract class Window implements Stoppable, WindowListener {
                 }
             }
         }
+    }
+
+    private void applyMagneticAlignment(int x, int y) {
+        Prefs prefs = GakuTools.getPrefs(context);
+        if (!prefs.getSnapEnabled()) {
+            params.x = x;
+            params.y = y;
+            return;
+        }
+
+        int snapGirth = 30; // pixels
+        Point display = getRealDisplaySize();
+        int screenWidth = display.x;
+        int screenHeight = display.y;
+
+        // X Axis Snapping (Left, Center, Right)
+        int targetX = x;
+        boolean nowSnappedX = false;
+        if (Math.abs(x) < snapGirth) {
+            targetX = 0;
+            nowSnappedX = true;
+        } else if (Math.abs(x + (params.width / 2) - (screenWidth / 2)) < snapGirth) {
+            targetX = (screenWidth / 2) - (params.width / 2);
+            nowSnappedX = true;
+        } else if (Math.abs(x + params.width - screenWidth) < snapGirth) {
+            targetX = screenWidth - params.width;
+            nowSnappedX = true;
+        }
+
+        // Y Axis Snapping (Top, Center, Bottom)
+        int targetY = y;
+        boolean nowSnappedY = false;
+        if (Math.abs(y) < snapGirth) {
+            targetY = 0;
+            nowSnappedY = true;
+        } else if (Math.abs(y + (params.height / 2) - (screenHeight / 2)) < snapGirth) {
+            targetY = (screenHeight / 2) - (params.height / 2);
+            nowSnappedY = true;
+        } else if (Math.abs(y + params.height - screenHeight + getStatusBarHeight()) < snapGirth) {
+            targetY = screenHeight - params.height - getStatusBarHeight();
+            nowSnappedY = true;
+        }
+
+        // Haptic Feedback on initial snap
+        if ((nowSnappedX && !mSnappedX) || (nowSnappedY && !mSnappedY)) {
+            window.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            // Show guides if capture window
+            if (this instanceof CaptureWindow) {
+                ((CaptureWindow) this).showGuides(nowSnappedX, nowSnappedY);
+            }
+        }
+
+        mSnappedX = nowSnappedX;
+        mSnappedY = nowSnappedY;
+        params.x = targetX;
+        params.y = targetY;
+        windowManager.updateViewLayout(window, params);
     }
 
     private Point getRealDisplaySizeFromContext() {

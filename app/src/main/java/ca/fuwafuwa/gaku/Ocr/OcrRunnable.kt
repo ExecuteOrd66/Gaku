@@ -38,7 +38,7 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
     private var mIsReady = false
 
     val isReadyForOcr: Boolean
-        get() = mOcrParams == null
+    get() = mOcrParams == null
 
     init {
         mOcrParams = null
@@ -55,7 +55,8 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
             return
         }
 
-        val dummyBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        // ML Kit requires input images to be at least 32x32 pixels.
+        val dummyBitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
         val image = InputImage.fromBitmap(dummyBitmap, 0)
 
         // Force non-null assertion (!!) is safe here because safeInitClient returned true
@@ -127,7 +128,7 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
                             // 3. Process blocking (Tasks.await is safe here in background thread)
                             val result = Tasks.await(recognizer.process(image), 10, TimeUnit.SECONDS)
 
-                             val displayData = getDisplayData(ocrParams, result)
+                            val displayData = getDisplayData(ocrParams, result)
                             processDisplayData(displayData)
 
                             val ocrTime = System.currentTimeMillis() - startTime

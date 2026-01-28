@@ -56,23 +56,22 @@ public class TextAnalyzer {
                 String.format("Batched parse of %d lines took %d ms", parsedLines.size(), (endTime - startTime)));
 
         int charIndex = 0;
-        int symbolIndex = 0;
 
         for (ParsedWord word : words) {
             String surface = word.getSurface();
 
-            // Sync charIndex with surface start, skipping newlines
-            while (charIndex < fullText.length() && fullText.charAt(charIndex) == '\n') {
+            // FIX: Only skip newlines if the current word itself is NOT a newline.
+            // Parsers like Kuromoji return "\n" as a word, while Jiten might skip it.
+            // This ensures we stay in sync with fullText.
+            while (charIndex < fullText.length()
+                    && fullText.charAt(charIndex) == '\n'
+                    && !surface.startsWith("\n")) {
                 charIndex++;
             }
 
-            // Verify surface match (optional but good for debugging)
-            if (charIndex + surface.length() <= fullText.length()) {
-                String sub = fullText.substring(charIndex, charIndex + surface.length());
-                if (!sub.equals(surface)) {
-                    // This might happen if parser normalizes text.
-                    // For now, we trust the index but log if needed.
-                }
+            // Defensive check to prevent crash if tokenizer drift occurs
+            if (charIndex >= fullText.length()) {
+                break;
             }
 
             Rect tokenRect = calculateTokenRectFromGlobalSymbols(allSymbols, fullText, charIndex, surface.length());
@@ -95,8 +94,12 @@ public class TextAnalyzer {
     private Rect calculateTokenRectFromGlobalSymbols(List<Text.Symbol> symbols, String fullText, int startIndex,
             int length) {
         Rect unionRect = null;
-        int currentFullTextIdx = 0;
         int symIdx = 0;
+
+        // Validation to prevent StringIndexOutOfBoundsException
+        if (startIndex < 0 || startIndex + length > fullText.length()) {
+            return new Rect(0, 0, 0, 0);
+        }
 
         // Skip characters in fullText until we reach startIndex, accounting for
         // newlines that aren't in symbols

@@ -8,51 +8,77 @@ import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
-import retrofit2.http.Query;
 
+/**
+ * JitenApi defines the Retrofit interface for interacting with Jiten.moe
+ * services.
+ */
 public interface JitenApi {
 
-    @POST("/login")
-    Call<LoginResponse> login(@Body LoginRequest request);
+        @POST("/login")
+        Call<LoginResponse> login(@Body LoginRequest request);
 
-    // --- Reader Endpoints ---
-    @POST("/api/reader/parse")
-    Call<List<JitenDTOs.DeckWordDto>> parse(
-            @Header("Authorization") String token, 
-            @Body JitenDTOs.ReaderParseRequest request);
+        // --- Reader Endpoints ---
 
-    @POST("/api/reader/lookup-vocabulary")
-    Call<List<Integer>> lookupVocabulary(
-            @Header("Authorization") String token,
-            @Body JitenDTOs.LookupVocabularyRequest request);
+        @POST("/api/reader/parse")
+        Call<List<JitenDTOs.DeckWordDto>> parse(
+                        @Header("Authorization") String token,
+                        @Body JitenDTOs.ReaderParseRequest request);
 
-    // --- Vocabulary Endpoints ---
-    @GET("/api/vocabulary/{wordId}/{readingIndex}")
-    Call<JitenDTOs.WordDto> getWordDetails(
-            @Header("Authorization") String token,
-            @Path("wordId") int wordId, 
-            @Path("readingIndex") int readingIndex);
+        @POST("/api/reader/lookup-vocabulary")
+        Call<List<Integer>> lookupVocabulary(
+                        @Header("Authorization") String token,
+                        @Body JitenDTOs.LookupVocabularyRequest request);
 
-    // --- SRS Endpoints ---
-    @POST("/api/srs/review")
-    Call<Void> review(
-            @Header("Authorization") String token,
-            @Body JitenDTOs.SrsReviewRequest request);
+        // --- Vocabulary Endpoints ---
 
-    @POST("/api/srs/set-vocabulary-state")
-    Call<Void> setVocabularyState(
-            @Header("Authorization") String token,
-            @Body JitenDTOs.SetVocabularyStateRequest request);
+        @GET("/api/vocabulary/{wordId}/{readingIndex}")
+        Call<JitenDTOs.WordDto> getWordDetails(
+                        @Header("Authorization") String token,
+                        @Path("wordId") int wordId,
+                        @Path("readingIndex") int readingIndex);
 
-    // Legacy sync (optional if you want to keep local DB sync)
-    @GET("/user/words")
-    Call<List<UserWord>> getWords(@Header("Authorization") String token);
+        // --- SRS Endpoints ---
 
-    class LoginRequest {
-        String username;
-        String password;
-        public LoginRequest(String u, String p) { this.username = u; this.password = p; }
-    }
+        @POST("/api/srs/review")
+        Call<Void> review(
+                        @Header("Authorization") String token,
+                        @Body JitenDTOs.SrsReviewRequest request);
 
-    class LoginResponse { String token; }
+        @POST("/api/srs/set-vocabulary-state")
+        Call<Void> setVocabularyState(
+                        @Header("Authorization") String token,
+                        @Body JitenDTOs.SetVocabularyStateRequest request);
+
+        // --- Legacy / Sync Endpoints ---
+
+        @GET("/user/words")
+        Call<List<UserWord>> getWords(@Header("Authorization") String token);
+
+        @POST("/user/words/sync")
+        Call<SyncResponse> syncWords(
+                        @Header("Authorization") String token,
+                        @Body List<UserWord> words);
+
+        /**
+         * Data classes for authentication and sync
+         */
+        class LoginRequest {
+                public String username;
+                public String password;
+
+                public LoginRequest(String u, String p) {
+                        this.username = u;
+                        this.password = p;
+                }
+        }
+
+        class LoginResponse {
+                public String token;
+        }
+
+        class SyncResponse {
+                public boolean success;
+                public int updated;
+        }
 }

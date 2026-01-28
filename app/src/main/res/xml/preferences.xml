@@ -19,7 +19,7 @@
             android:summary="Choose the engine used for sentence parsing"
             android:entries="@array/parser_backend_entries"
             android:entryValues="@array/parser_backend_values"
-            android:defaultValue="jiten" />
+            android:defaultValue="offline" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Jiten API Settings">
@@ -70,6 +70,38 @@
             android:title="Instant Mode"
             android:summary="Perform OCR immediately on selection"
             android:defaultValue="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Capture Window Mechanics">
+        <SwitchPreferenceCompat
+            android:key="pref_snap_enabled"
+            android:title="Magnetic Alignment (Snapping)"
+            android:summary="Snap window to edges and screen center while dragging"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_show_preset_bar"
+            android:title="Show Preset Bar"
+            android:summary="Show size presets (Line, Paragraph, etc) when touching the window"
+            android:defaultValue="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Capture Window Appearance">
+        <ListPreference
+            android:key="pref_border_thickness"
+            android:title="Border Thickness"
+            android:summary="Thickness of the capture area boundary"
+            android:entries="@array/border_thickness_entries"
+            android:entryValues="@array/border_thickness_values"
+            android:defaultValue="2" />
+
+        <ListPreference
+            android:key="pref_border_color"
+            android:title="Border Color"
+            android:summary="Color of the capture area boundary"
+            android:entries="@array/border_color_entries"
+            android:entryValues="@array/border_color_values"
+            android:defaultValue="#0064ff" />
     </PreferenceCategory>
 
 </PreferenceScreen>

@@ -2,17 +2,21 @@ package ca.fuwafuwa.gaku.Windows
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.drawable.Drawable
-import android.media.Image
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.util.Log
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
+import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import ca.fuwafuwa.gaku.*
@@ -25,13 +29,13 @@ import ca.fuwafuwa.gaku.Windows.Interfaces.WindowListener
 import ca.fuwafuwa.gaku.Windows.Views.WordOverlayView
 import ca.fuwafuwa.gaku.Analysis.ParsedResult
 import ca.fuwafuwa.gaku.Analysis.ParsedWord
-import ca.fuwafuwa.gaku.Network.JitenApiClient
 import ca.fuwafuwa.gaku.XmlParsers.CommonParser
 import java.io.FileOutputStream
 import java.io.IOException
 
 /**
- * Created by 0xbad1d3a5 on 4/13/2016.
+ * CaptureWindow handles the Region of Interest (ROI) selection,
+ * UI presets, and initiates the OCR pipeline.
  */
 class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Window(context, windowCoordinator, R.layout.window_capture), WindowListener
 {
@@ -40,20 +44,27 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     private val mImageView: ImageView
     private val mWordOverlay: WordOverlayView
     private val mFadeRepeat: Animation
-    private val mBorderDefault: Drawable?
-    private val mBorderReady: Drawable?
+    
+    // REQ-007 & REQ-008 UI Elements
+    private val mPresetBar: View
+    private val mGuideH: View
+    private val mGuideV: View
 
-    private var mPrefs: Prefs?
     private var mLastDoubleTapTime: Long
     private val mLastDoubleTapIgnoreDelay: Long
     private var mInLongPress: Boolean = false
-    private var mProcessingPreview: Boolean = false
     private var mProcessingOcr: Boolean = false
-    private var mScreenshotForOcr: ScreenshotForOcr? = null
+    
+    // Flag to lock movement until long press
+    private var mIsEditMode: Boolean = false
+    
+    // Offsets for manual movement handling
+    private var mDragOffsetX: Int = 0
+    private var mDragOffsetY: Int = 0
 
     private var mCommonParser: CommonParser? = null
 
-    // Helper class to hold data
+    // Inner class used by getOcrData to return results locally
     private inner class ScreenshotForOcr(val crop: Bitmap?, val orig: Bitmap?, val params: BoxParams?) {
         fun recycle() {
             if (crop != null && !crop.isRecycled) crop.recycle()
@@ -63,29 +74,31 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
     init
     {
-        show()
-
         this.mCommonParser = CommonParser(context)
 
         mImageView = window.findViewById(R.id.capture_image)
         mWordOverlay = window.findViewById(R.id.word_overlay)
         mWordOverlay.setOnWordClickListener { word -> onWordClicked(word) }
         
+        mWindowBox = window.findViewById(R.id.capture_box)
+        mPresetBar = window.findViewById(R.id.preset_bar)
+        mGuideH = window.findViewById(R.id.guide_h)
+        mGuideV = window.findViewById(R.id.guide_v)
 
         mFadeRepeat = AnimationUtils.loadAnimation(this.context, R.anim.fade_repeat)
         
-        // FIX: Use ContextCompat for modern Android compatibility
-        mBorderDefault = ContextCompat.getDrawable(this.context, R.drawable.bg_translucent_border_0_blue_blue)
-        mBorderReady = ContextCompat.getDrawable(this.context, R.drawable.bg_transparent_border_0_nil_ready)
-
         mLastDoubleTapTime = System.currentTimeMillis()
         mLastDoubleTapIgnoreDelay = 500
         mInLongPress = false
-        mProcessingPreview = false
         mProcessingOcr = false
-        mScreenshotForOcr = null
+        mIsEditMode = false
 
-        mPrefs = getPrefs(context)
+        // Ensure window view allows haptics
+        window.isHapticFeedbackEnabled = true
+
+        // Initialize Presets and Border
+        setupPresets()
+        updateBorderVisuals()
 
         mOcr = OcrRunnable(this.context, this)
         val ocrThread = Thread(mOcr)
@@ -93,11 +106,8 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
         ocrThread.isDaemon = true
         ocrThread.start()
         
-        // FIX: Initialize MLKit immediately so it's ready when the user captures
         mOcr.warmUp()
 
-        // Need to wait for the view to finish updating before we try to determine its location
-        mWindowBox = window.findViewById(R.id.capture_box)
         mWindowBox.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener
         {
             override fun onGlobalLayout()
@@ -106,12 +116,83 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
                 mWindowBox.viewTreeObserver.removeOnGlobalLayoutListener(this)
             }
         })
+
+        show()
     }
 
     override fun reInit(options: Window.ReinitOptions)
     {
-        mPrefs = getPrefs(context)
         super.reInit(options)
+        updateBorderVisuals()
+    }
+
+    private fun setupPresets() {
+        val container = window.findViewById<LinearLayout>(R.id.preset_container)
+        container.removeAllViews()
+        
+        CapturePreset.values().forEach { preset ->
+            val btn = Button(context).apply {
+                text = preset.label
+                textSize = 10f
+                setTextColor(Color.WHITE)
+                background = ContextCompat.getDrawable(context, R.drawable.bg_solid_border_corners_0_white_black_round)
+                backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#44FFFFFF"))
+                
+                val lp = LinearLayout.LayoutParams(dpToPx(context, 70), dpToPx(context, 40))
+                lp.setMargins(dpToPx(context, 4), 0, dpToPx(context, 4), 0)
+                layoutParams = lp
+                
+                setOnClickListener { applyPreset(preset) }
+            }
+            container.addView(btn)
+        }
+    }
+
+    private fun applyPreset(preset: CapturePreset) {
+        params.width = dpToPx(context, preset.widthDp)
+        params.height = dpToPx(context, preset.heightDp)
+        
+        params.x = (getRealDisplaySize().x / 2) - (params.width / 2)
+        params.y = (getRealDisplaySize().y / 2) - (params.height / 2)
+        
+        windowManager.updateViewLayout(window, params)
+        blinkBorder()
+        mPresetBar.visibility = View.GONE
+        mIsEditMode = false 
+    }
+
+    private fun updateBorderVisuals() {
+        val prefs = getPrefs(context)
+        val color = Color.parseColor(prefs.borderColor)
+        val thickness = dpToPx(context, prefs.borderThickness)
+        
+        val shape = GradientDrawable().apply {
+            setStroke(thickness, color)
+            val alphaColor = (color and 0x00FFFFFF) or 0x1A000000 
+            setColor(alphaColor)
+        }
+        mWindowBox.background = shape
+    }
+
+    private fun blinkBorder() {
+        mWindowBox.alpha = 0.3f
+        mWindowBox.animate().alpha(1.0f).setDuration(300).start()
+    }
+
+    fun showGuides(h: Boolean, v: Boolean) {
+        val prefs = getPrefs(context)
+        if (!prefs.snapEnabled) return
+
+        mGuideH.visibility = if (v) View.VISIBLE else View.GONE
+        mGuideV.visibility = if (h) View.VISIBLE else View.GONE
+        
+        mGuideH.removeCallbacks(hideGuidesRunnable)
+        mGuideH.postDelayed(hideGuidesRunnable, 800)
+    }
+
+    private val hideGuidesRunnable = Runnable {
+        mGuideH.visibility = View.GONE
+        mGuideV.visibility = View.GONE
     }
 
     override fun onDoubleTap(e: MotionEvent): Boolean
@@ -135,16 +216,13 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
         hideInstantWindows()
 
-        if (e.action == MotionEvent.ACTION_MOVE && !mInLongPress && !mProcessingOcr)
-        {
-            mImageView.setImageResource(0)
-            mWordOverlay.visibility = View.GONE
-            updateWindowFlags(false)
-        }
-
-        if (!mInLongPress && !mProcessingOcr)
-        {
-            setBorderStyle(e)
+        if (e.action == MotionEvent.ACTION_DOWN) {
+            // Capture offsets for manual movement
+            mDragOffsetX = params.x - e.rawX.toInt()
+            mDragOffsetY = params.y - e.rawY.toInt()
+            
+            super.onTouch(e)
+            return true
         }
 
         if (e.action == MotionEvent.ACTION_MOVE)
@@ -153,37 +231,86 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             {
                 mOcr.cancel()
             }
+
+            // Manual movement logic
+            if (mIsEditMode) {
+                // Clear overlay only if moving
+                mImageView.setImageResource(0)
+                mWordOverlay.visibility = View.GONE
+                updateWindowFlags(false)
+
+                params.x = mDragOffsetX + e.rawX.toInt()
+                params.y = mDragOffsetY + e.rawY.toInt()
+                
+                // Keep within screen bounds
+                val display = getRealDisplaySize()
+                val statusBar = getStatusBarHeight()
+                
+                if (params.x < 0) params.x = 0
+                else if (params.x + params.width > display.x) params.x = display.x - params.width
+                
+                if (params.y < 0) params.y = 0
+                else if (params.y + params.height > display.y) params.y = display.y - params.height - statusBar
+                
+                windowManager.updateViewLayout(window, params)
+            }
+            
+            return true
         }
 
-        return super.onTouch(e)
+        if (e.action == MotionEvent.ACTION_UP) {
+            if (mIsEditMode) {
+                mIsEditMode = false
+                mPresetBar.postDelayed({ mPresetBar.visibility = View.GONE }, 2000)
+            }
+            onUp(e)
+            return true
+        }
+
+        return true
+    }
+
+    override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+        // Prevent default window scrolling if not in edit mode
+        if (!mIsEditMode) return true
+        return super.onScroll(e1, e2, distanceX, distanceY)
     }
 
     override fun onLongPress(e: MotionEvent)
     {
-        Log.d(TAG, "onLongPress")
+        // Unlock Edit Mode and show Preset Bar
         mInLongPress = true
+        mIsEditMode = true
+        
+        // Re-calculate offsets on long press to ensure smooth transition
+        mDragOffsetX = params.x - e.rawX.toInt()
+        mDragOffsetY = params.y - e.rawY.toInt()
+
+        val prefs = getPrefs(context)
+        if (prefs.showPresetBar) mPresetBar.visibility = View.VISIBLE
+        
+        window.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     }
 
     override fun onResize(e: MotionEvent): Boolean
     {
-        hideInstantWindows()
+        // Allow resize anytime (no edit mode check)
+        
+        // Handle touch up to reset state when resizing ends
+        if (e.action == MotionEvent.ACTION_UP || e.action == MotionEvent.ACTION_CANCEL) {
+            mIsEditMode = false
+            mPresetBar.postDelayed({ mPresetBar.visibility = View.GONE }, 2000)
+        }
 
+        hideInstantWindows()
         mOcr.cancel()
-        mImageView.setImageResource(0)
-        setBorderStyle(e)
+        
+        // Kept results visible during resize
         return super.onResize(e)
     }
 
     override fun onUp(e: MotionEvent): Boolean
     {
-        // Added checks to prevent processing preview if OCR just started
-        if (!mInLongPress && !mProcessingPreview && !mProcessingOcr)
-        {
-            setBorderStyle(e)
-            mProcessingPreview = true
-            setCroppedScreenshot()
-        }
-
         mInLongPress = false
         return true
     }
@@ -197,8 +324,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     fun showLoadingAnimation()
     {
         (context as MainService).handler.post {
-            Log.d(TAG, "showLoadingAnimation")
-            mWindowBox.background = mBorderDefault
             mImageView.imageAlpha = 0
             mWindowBox.animation = mFadeRepeat
             mWindowBox.startAnimation(mFadeRepeat)
@@ -209,7 +334,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     {
         (context as MainService).handler.post {
             mProcessingOcr = false
-            mWindowBox.background = mBorderReady
             mWindowBox.clearAnimation()
             
             if (instant)
@@ -219,9 +343,7 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             {
                 mImageView.imageAlpha = 255
                 mImageView.setImageResource(0)
-                
-                mScreenshotForOcr?.recycle() 
-                mScreenshotForOcr = null
+                // Member variable mScreenshotForOcr is removed, so no recycling needed here
             }
         }
     }
@@ -264,13 +386,10 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             mWordOverlay.invalidate()
         }
         
-        // Calculate the same border offset used in cropping
         val borderOffset = dpToPx(context, 1) + 1
-        
-        // Position popup above the word, relative to screen
         val rect = word.boundingBox
         val x = params.x + borderOffset + rect.left + (rect.width() / 2)
-        val y = params.y + borderOffset + rect.top - 200 // Offset upwards
+        val y = params.y + borderOffset + rect.top - 200 
         
         wordDetailWindow.showAt(x, y)
     }
@@ -284,100 +403,38 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
         return params
     }
 
-    // FIX: Refactored to avoid accessing Views on background thread
-    private fun setCroppedScreenshot()
-    {
-        // 1. Calculate BoxParams on the UI Thread
-        val viewPos = IntArray(2)
-        mWindowBox.getLocationOnScreen(viewPos)
-        val box = BoxParams(viewPos[0], viewPos[1], params.width, params.height)
-
-        val thread = Thread(Runnable {
-            
-            // 2. Pass the pre-calculated box to the generator
-            val ocrScreenshot = getOcrData(box)
-
-            if (ocrScreenshot == null || ocrScreenshot.crop == null || ocrScreenshot.orig == null || ocrScreenshot.params == null)
-            {
-                mProcessingPreview = false
-                return@Runnable
-            }
-
-            (context as MainService).handler.post {
-                mScreenshotForOcr = ocrScreenshot
-
-                mImageView.setImageBitmap(mScreenshotForOcr!!.crop)
-
-                if (mPrefs!!.instantModeSetting && System.currentTimeMillis() > mLastDoubleTapTime + mLastDoubleTapIgnoreDelay)
-                {
-                    val sizeForInstant = minSize * 3
-                    if (sizeForInstant >= mScreenshotForOcr!!.params!!.width || sizeForInstant >= mScreenshotForOcr!!.params!!.height)
-                    {
-                        performOcr(true)
-                    }
-                }
-
-                mProcessingPreview = false
-            }
-        })
-        thread.start()
-    }
-
-    private fun setBorderStyle(e: MotionEvent)
-    {
-        when (e.action)
-        {
-            MotionEvent.ACTION_DOWN -> mWindowBox.background = mBorderDefault
-            MotionEvent.ACTION_UP -> mWindowBox.background = mBorderReady
-        }
-    }
-
     private fun performOcr(instant: Boolean)
     {
-        // 1. Prevent spamming
         if (mProcessingOcr) return
-
         mProcessingOcr = true
-        mLastDoubleTapTime = System.currentTimeMillis() // Update time to prevent onUp/Resize interference
+        mLastDoubleTapTime = System.currentTimeMillis()
 
-        // 2. Show feedback IMMEDIATELY so the user knows it registered
         showLoadingAnimation()
 
-        // 3. Calculate coordinates on UI thread (safe)
         val viewPos = IntArray(2)
         mWindowBox.getLocationOnScreen(viewPos)
         val box = BoxParams(viewPos[0], viewPos[1], params.width, params.height)
 
-        // 4. Run heavy lifting on Background Thread
         Thread {
             try
             {
-                // Wait for OCR engine to be ready (non-blocking for UI)
                 if (!instant)
                 {
                     var attempts = 0
-                    // Wait up to 1 second for engine to free up
                     while (!mOcr.isReadyForOcr && attempts < 20)
                     {
-                        mOcr.cancel()
                         Thread.sleep(50)
                         attempts++
                     }
                 }
 
-                // 5. Generate a FRESH screenshot specifically for this action
-                // Do not rely on mScreenshotForOcr being populated by onUp
                 val ocrData = getOcrData(box)
-
                 if (ocrData == null || ocrData.crop == null || ocrData.orig == null || ocrData.params == null)
                 {
-                    // Failed to grab screen? Reset UI
                     stopLoadingAnimation(instant)
                     return@Thread
                 }
 
-                // 6. Send to OCR Engine
-                // We create a new OcrParams object directly
                 mOcr.runTess(OcrParams(
                     ocrData.crop,
                     ocrData.orig,
@@ -395,7 +452,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
         }.start()
     }
 
-    // FIX: Renamed from getter to normal function, accepts box params explicitly
     @Throws(Exception::class)
     private fun getOcrData(box: BoxParams): ScreenshotForOcr?
     {
@@ -412,152 +468,31 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     @Throws(Exception::class)
     private fun getReadyScreenshot(box: BoxParams): ScreenshotForOcr?
     {
-        Log.d(TAG, String.format("X:%d Y:%d (%dx%d)", box.x, box.y, box.width, box.height))
+        val bitmap = (context as MainService).screenshotBitmap
+        if (bitmap == null) return null
 
-        var screenshotReady = false
-        val startTime = System.currentTimeMillis()
-        var screenshot: Bitmap? = null
-
-        do
-        {
-            val bitmap = (context as MainService).screenshotBitmap
-            if (bitmap == null) {
-                Thread.sleep(10)
-                continue
-            }
-            screenshot = bitmap
-            screenshotReady = checkScreenshotIsReady(screenshot!!, box)
-
-        } while (!screenshotReady && System.currentTimeMillis() < startTime + 2000)
-
-        if (screenshot == null || !screenshotReady)
-        {
-            if (screenshot != null) {
-                val croppedBitmap = getCroppedBitmap(screenshot!!, box)
-                saveBitmap(screenshot!!, String.format("error_(%d,%d)_(%d,%d)", box.x, box.y, box.width, box.height))
-                saveBitmap(croppedBitmap, String.format("error_(%d,%d)_(%d,%d)", box.x, box.y, box.width, box.height))
-            }
-            return null
-        }
-
-        val croppedBitmap = getCroppedBitmap(screenshot!!, box)
-
-        return ScreenshotForOcr(croppedBitmap, screenshot, box)
+        val croppedBitmap = getCroppedBitmap(bitmap, box)
+        return ScreenshotForOcr(croppedBitmap, bitmap, box)
     }
-
-    private fun checkScreenshotIsReady(screenshot: Bitmap, box: BoxParams): Boolean
-    {
-        val readyColor = ContextCompat.getColor(context, R.color.red_capture_window_ready)
-        
-        // Safety check to ensure box is within screenshot bounds (prevent crash if screen rotated/resized)
-        if (box.x + box.width > screenshot.width || box.y + box.height > screenshot.height) {
-            return false
-        }
-
-        val screenshotColor = screenshot.getPixel(box.x, box.y)
-
-        if (readyColor != screenshotColor && isAcceptableAlternateReadyColor(screenshotColor))
-        {
-            return false
-        }
-
-        for (x in box.x until box.x + box.width)
-        {
-            if (!isRGBWithinTolerance(readyColor, screenshot.getPixel(x, box.y)))
-            {
-                return false
-            }
-        }
-
-        for (x in box.x until box.x + box.width)
-        {
-            if (!isRGBWithinTolerance(readyColor, screenshot.getPixel(x, box.y + box.height - 1)))
-            {
-                return false
-            }
-        }
-
-        for (y in box.y until box.y + box.height)
-        {
-            if (!isRGBWithinTolerance(readyColor, screenshot.getPixel(box.x, y)))
-            {
-                return false
-            }
-        }
-
-        for (y in box.y until box.y + box.height)
-        {
-            if (!isRGBWithinTolerance(readyColor, screenshot.getPixel(box.x + box.width - 1, y)))
-            {
-                return false
-            }
-        }
-        
-        return true
-    }
-
-    /**
-     * Looks like sometimes the screenshot just has a color that is 100% totally wrong. Let's just accept any red that's "red enough"
-     * @param screenshotColor
-     * @return
-     */
-    private fun isAcceptableAlternateReadyColor(screenshotColor: Int): Boolean
-    {
-        val R = screenshotColor shr 16 and 0xFF
-        val G = screenshotColor shr 8 and 0xFF
-        val B = screenshotColor and 0xFF
-
-        var isValid = true
-
-        if (G * 10 > R)
-        {
-            isValid = false
-        }
-
-        if (B * 10 > R)
-        {
-            isValid = false
-        }
-
-        return isValid
-    }
-
-    private fun isRGBWithinTolerance(color: Int, colorToCheck: Int): Boolean
-    {
-        val redRatio = (colorToCheck shr 16 and 0xFF) / 3;
-        var isColorWithinTolerance: Boolean = ((colorToCheck and 0xFF) < redRatio)
-        isColorWithinTolerance = isColorWithinTolerance and ((colorToCheck shr 8 and 0xFF) < redRatio)
-        isColorWithinTolerance = isColorWithinTolerance and ((colorToCheck shr 16 and 0xFF) > 140)
-        // Log.d("RGB", "R: ${colorToCheck shr 16 and 0xFF} G: ${colorToCheck shr 8 and 0xFF}B: ${colorToCheck and 0xFF}")
-
-        return isColorWithinTolerance
-    }
-
-
 
     private fun getCroppedBitmap(screenshot: Bitmap, box: BoxParams): Bitmap
     {
         val borderSize = dpToPx(context, 1) + 1
         
-        // Safety check for bounds
-        val width = if (box.width - 2 * borderSize > 0) box.width - 2 * borderSize else 1
-        val height = if (box.height - 2 * borderSize > 0) box.height - 2 * borderSize else 1
+        // Ensure we don't crop outside bounds
+        val startX = box.x + borderSize
+        val startY = box.y + borderSize
+        var width = box.width - 2 * borderSize
+        var height = box.height - 2 * borderSize
         
-        return Bitmap.createBitmap(screenshot,
-                box.x + borderSize,
-                box.y + borderSize,
-                width,
-                height)
-    }
-
-    @Throws(IOException::class)
-    private fun saveBitmap(bitmap: Bitmap, name: String)
-    {
-        val fs = String.format("%s/%s/%s_%d.png", context.filesDir.absolutePath, SCREENSHOT_FOLDER_NAME, name, System.nanoTime())
-        Log.d(TAG, fs)
-        FileOutputStream(fs).use { out ->
-             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-        }
+        // Validation
+        if (startX < 0 || startY < 0) return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        if (width <= 0) width = 1
+        if (height <= 0) height = 1
+        if (startX + width > screenshot.width) width = screenshot.width - startX
+        if (startY + height > screenshot.height) height = screenshot.height - startY
+        
+        return Bitmap.createBitmap(screenshot, startX, startY, width, height)
     }
 
     companion object
@@ -565,6 +500,3 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
         private val TAG = CaptureWindow::class.java.name
     }
 }
-
-
-

@@ -25,33 +25,41 @@ public class JitenSentenceParser implements SentenceParser {
     public List<ParsedWord> parse(String text) {
         List<ParsedWord> parsedWords = new ArrayList<>();
         try {
-            // Use the new Reader Parse endpoint (POST)
-            retrofit2.Response<List<JitenDTOs.DeckWordDto>> response = apiClient.getApi()
-                    .parse(apiClient.getAuthToken(), new JitenDTOs.ReaderParseRequest(text)).execute();
+            // Using the high-level parse method we implemented in JitenApiClient
+            List<JitenDTOs.DeckWordDto> deckWords = apiClient.parse(text);
 
-            List<JitenDTOs.DeckWordDto> deckWords = response.body();
-            if (deckWords == null)
+            if (deckWords == null) {
                 return parsedWords;
+            }
 
             for (JitenDTOs.DeckWordDto deckWord : deckWords) {
-                // Check cache for details
+                // If wordId is 0, it's likely a gap/punctuation that couldn't be parsed
+                if (deckWord.wordId <= 0) {
+                    parsedWords.add(new ParsedWord(deckWord.originalText, "", "", null));
+                    continue;
+                }
+
                 String cacheKey = deckWord.wordId + "_" + deckWord.readingIndex;
                 JitenDTOs.WordDto wordDetails = wordCache.get(cacheKey);
 
-                if (wordDetails == null && deckWord.wordId > 0) {
+                if (wordDetails == null) {
                     wordDetails = apiClient.getWordDetails(deckWord.wordId, deckWord.readingIndex);
-                    if (wordDetails != null)
+                    if (wordDetails != null) {
                         wordCache.put(cacheKey, wordDetails);
+                    }
                 }
 
                 if (wordDetails != null) {
-                    parsedWords.add(convertToParsedWord(deckWord, wordDetails));
+                    ParsedWord word = convertToParsedWord(deckWord, wordDetails);
+                    parsedWords.add(word);
                 } else {
+                    // Fallback
                     parsedWords.add(new ParsedWord(deckWord.originalText, "", "", null));
                 }
             }
+
         } catch (IOException e) {
-            Log.e(TAG, "Jiten Reader Parse Failed", e);
+            Log.e(TAG, "Failed to parse text via Jiten API", e);
         }
         return parsedWords;
     }
@@ -65,12 +73,12 @@ public class JitenSentenceParser implements SentenceParser {
             reading = wordDetails.mainReading.text;
         }
 
-        // Assuming baseForm is somewhat equivalent to the main reading or dictionary
-        // form handling
-        // Jiten API doesn't explicitly give "baseForm" in the same way Kuromoji does,
-        // but the WordDto represents the base entry.
-
         ParsedWord word = new ParsedWord(surface, reading, baseForm, null);
+
+        // CRITICAL: Map IDs into metadata so ReviewController can find them for SRS
+        // buttons
+        word.putMetadata("wordId", wordDetails.wordId);
+        word.putMetadata("readingIndex", deckWord.readingIndex);
 
         if (wordDetails.definitions != null) {
             List<String> meanings = new ArrayList<>();
@@ -86,18 +94,6 @@ public class JitenSentenceParser implements SentenceParser {
         }
 
         if (wordDetails.pitchAccents != null) {
-            // ParsedWord expects a String for pitch pattern? Or List<Integer>?
-            // TextAnalyzer calls setPitchPattern(String).
-            // Let's check ParsedWord.java to be sure.
-            // For now, I'll assume we can format it as a string or if there's a setter for
-            // list.
-            // Since I can't see ParsedWord right now, I'll rely on TextAnalyzer usage.
-            // TextAnalyzer: word.setPitchPattern(bestEntry.getReadings()); -> getReadings
-            // is String?
-            // "word.setPitchPattern(pitch.getPitchPattern());" -> pitch pattern is String?
-
-            // Jiten returns List<Integer>. I should probably convert to comma separated
-            // string or similar.
             StringBuilder sb = new StringBuilder();
             for (Integer p : wordDetails.pitchAccents) {
                 if (sb.length() > 0)
@@ -108,6 +104,8 @@ public class JitenSentenceParser implements SentenceParser {
         }
 
         if (wordDetails.knownStates != null && !wordDetails.knownStates.isEmpty()) {
+            // knownStates: [0: New, 1: Young, 2: Mature, 3: Blacklisted, 4: Due, 5:
+            // Mastered]
             int jitenState = wordDetails.knownStates.get(0);
             int mappedState = 0;
 
@@ -131,12 +129,10 @@ public class JitenSentenceParser implements SentenceParser {
                     mappedState = 0;
                     break; // New -> Unknown
             }
-
             word.setStatus(mappedState);
         }
 
-        word.setDictionary("Jiten.moe"); // Mark source
-
+        word.setDictionary("Jiten.moe");
         return word;
     }
 }

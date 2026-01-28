@@ -18,6 +18,8 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class JitenApiClient {
 
@@ -60,6 +62,62 @@ public class JitenApiClient {
 
         api = retrofit.create(JitenApi.class);
         dbHelper = UserDatabaseHelper.instance(mContext);
+    }
+
+    public void setVocabularyState(int wordId, int readingIndex, String state) {
+        refreshSettings();
+        if (authToken == null || authToken.isEmpty()) {
+            return;
+        }
+
+        JitenDTOs.SetVocabularyStateRequest request = new JitenDTOs.SetVocabularyStateRequest();
+        request.wordId = wordId;
+        request.readingIndex = readingIndex;
+        request.state = state;
+
+        api.setVocabularyState(authToken, request).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    Log.d(TAG, "Jiten state updated: " + state);
+                } else {
+                    Log.e(TAG, "Failed to update Jiten state: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                Log.e(TAG, "Jiten state update error", t);
+            }
+        });
+    }
+
+    public void rateWord(int wordId, int readingIndex, int rating) {
+        refreshSettings();
+        if (authToken == null || authToken.isEmpty()) {
+            return;
+        }
+
+        JitenDTOs.SrsReviewRequest request = new JitenDTOs.SrsReviewRequest();
+        request.wordId = wordId;
+        request.readingIndex = readingIndex;
+        request.rating = rating;
+
+        api.review(authToken, request).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    Log.d(TAG, "Jiten SRS rating sent: " + rating);
+                } else {
+                    Log.e(TAG, "Failed to send Jiten SRS rating: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                Log.e(TAG, "Jiten SRS rating error", t);
+            }
+        });
     }
 
     public static synchronized JitenApiClient getInstance(Context context) {
@@ -199,7 +257,13 @@ public class JitenApiClient {
         if (authToken == null || authToken.isEmpty()) {
             return null;
         }
-        retrofit2.Response<List<JitenDTOs.DeckWordDto>> response = api.parse(authToken, text).execute();
+
+        // Wrap the raw string into the DTO required by the new POST endpoint
+        JitenDTOs.ReaderParseRequest request = new JitenDTOs.ReaderParseRequest(text);
+
+        // Pass the request object instead of the raw text string
+        retrofit2.Response<List<JitenDTOs.DeckWordDto>> response = api.parse(authToken, request).execute();
+
         if (response.isSuccessful()) {
             return response.body();
         }
