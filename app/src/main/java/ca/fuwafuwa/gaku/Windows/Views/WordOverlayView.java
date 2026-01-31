@@ -309,6 +309,16 @@ public class WordOverlayView extends RelativeLayout {
         }
     }
 
+    public ParsedWord getWordAtLocalCoords(int localX, int localY) {
+        if (words == null) return null;
+        for (ParsedWord word : words) {
+            if (word.getBoundingBox().contains(localX, localY)) {
+                return word;
+            }
+        }
+        return null;
+    }
+
     private Paint getPaintForStatus(int status) {
         switch (status) {
             case UserWord.STATUS_LEARNING:

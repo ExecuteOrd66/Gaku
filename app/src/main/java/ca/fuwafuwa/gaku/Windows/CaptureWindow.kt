@@ -358,6 +358,26 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
         super.stop()
     }
 
+    /**
+    * Checks if a global screen coordinate hits a word within this window.
+    */
+    fun getWordAtScreenCoords(rawX: Float, rawY: Float): ParsedWord? {
+        val borderOffset = dpToPx(context, 1) + 1
+        
+        // Convert Screen Space -> Local Window Space
+        val localX = (rawX - params.x - borderOffset).toInt()
+        val localY = (rawY - params.y - borderOffset).toInt()
+
+        return mWordOverlay.getWordAtLocalCoords(localX, localY)
+    }
+
+    /**
+    * Proxy method to allow the Detail window to trigger a "Word Click"
+    */
+    fun onWordHandleExternal(word: ParsedWord) {
+        this.onWordClicked(word)
+    }
+
     fun showLoadingAnimation()
     {
         (context as MainService).handler.post {

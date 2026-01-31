@@ -315,20 +315,50 @@ public class WordDetailWindow extends Window {
 
     @Override
     public boolean onTouch(MotionEvent e) {
+        // We only care about the release of the tap
         if (e.getAction() == MotionEvent.ACTION_UP) {
             if (popupContainer != null) {
+
+                // 1. Get the screen bounds of the visible popup UI box
                 int[] location = new int[2];
                 popupContainer.getLocationOnScreen(location);
-                Rect rect = new Rect(location[0], location[1],
+                Rect popupRect = new Rect(location[0], location[1],
                         location[0] + popupContainer.getWidth(),
                         location[1] + popupContainer.getHeight());
 
-                if (!rect.contains((int) e.getRawX(), (int) e.getRawY())) {
-                    hide();
-                    return true;
+                float rawX = e.getRawX();
+                float rawY = e.getRawY();
+
+                // 2. If the user clicks INSIDE the popup UI (buttons/text),
+                // return false. This allows the OS to pass the touch to child
+                // views like your "Mine" or "Close" buttons.
+                if (popupRect.contains((int) rawX, (int) rawY)) {
+                    return false;
                 }
+
+                // 3. If they clicked OUTSIDE the popup, let's see if there's
+                // a word underneath in the CaptureWindow.
+                CaptureWindow capWin = (CaptureWindow) windowCoordinator.getWindow("WINDOW_CAPTURE");
+
+                if (capWin != null) {
+                    ParsedWord hitWord = capWin.getWordAtScreenCoords(rawX, rawY);
+                    if (hitWord != null) {
+                        // We found a new word!
+                        // Tell CaptureWindow to trigger its click logic, which
+                        // calls setWord() and showForWordBounds() on THIS instance.
+                        capWin.onWordHandleExternal(hitWord);
+                        return true; // Return true to keep the window open/blocking
+                    }
+                }
+
+                // 4. Fallback: They clicked truly blank space. Hide the window.
+                hide();
+                return true;
             }
         }
+
+        // Return true for all other actions (DOWN, MOVE) to ensure
+        // this window blocks all touch input to the game/app underneath.
         return true;
     }
 
