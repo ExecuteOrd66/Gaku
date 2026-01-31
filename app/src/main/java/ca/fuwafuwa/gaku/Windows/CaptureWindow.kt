@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.Rect
 import android.os.Build
 import android.util.Log
 import android.view.HapticFeedbackConstants
@@ -77,7 +78,16 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
         mImageView = window.findViewById(R.id.capture_image)
         mWordOverlay = window.findViewById(R.id.word_overlay)
-        mWordOverlay.setOnWordClickListener { word -> onWordClicked(word) }
+        
+        mWordOverlay.setOnWordClickListener(object : WordOverlayView.OnWordClickListener {
+            override fun onWordClicked(word: ParsedWord, isVertical: Boolean) {
+                // We don't use isVertical for positioning anymore, per simplify request
+                this@CaptureWindow.onWordClicked(word)
+            }
+            override fun onBlankSpaceClicked() {
+                hideInstantWindows()
+            }
+        })
         
         mWindowBox = window.findViewById(R.id.capture_box)
         mPresetBar = window.findViewById(R.id.preset_bar)
@@ -288,6 +298,7 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
                 
                 hideInstantWindows()
             }
+
             onUp(e)
             return true
         }
@@ -337,6 +348,7 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     override fun onUp(e: MotionEvent): Boolean
     {
         mInLongPress = false
+
         return true
     }
 
@@ -413,12 +425,22 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             mWordOverlay.invalidate()
         }
         
+        // Calculate Global Bounding Box of the Word
         val borderOffset = dpToPx(context, 1) + 1
-        val rect = word.boundingBox
-        val x = params.x + borderOffset + rect.left + (rect.width() / 2)
-        val y = params.y + borderOffset + rect.top - 200 
+        val relativeRect = word.boundingBox
         
-        wordDetailWindow.showAt(x, y)
+        // CaptureWindow X + Border + Word X
+        val globalLeft = params.x + borderOffset + relativeRect.left
+        val globalTop = params.y + borderOffset + relativeRect.top
+        
+        val globalRect = Rect(globalLeft, globalTop, 
+                            globalLeft + relativeRect.width(), 
+                            globalTop + relativeRect.height())
+                            
+        // Calculate Global Bounding Box of the Capture Window
+        val captureRect = Rect(params.x, params.y, params.x + params.width, params.y + params.height)
+        
+        wordDetailWindow.showForWordBounds(globalRect, captureRect)
     }
 
     override fun getDefaultParams(): WindowManager.LayoutParams

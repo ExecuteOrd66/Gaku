@@ -2,21 +2,28 @@ package ca.fuwafuwa.gaku.Windows;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.PixelFormat;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.os.Build;
 import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
+import android.util.Log;
 
+import java.sql.SQLException;
 import java.util.List;
 
 import ca.fuwafuwa.gaku.Analysis.ParsedWord;
 import ca.fuwafuwa.gaku.Database.User.UserDatabaseHelper;
 import ca.fuwafuwa.gaku.Database.User.UserWord;
+import ca.fuwafuwa.gaku.GakuTools;
 import ca.fuwafuwa.gaku.R;
 import ca.fuwafuwa.gaku.Windows.Views.PitchAccentGraphView;
-import android.widget.Button;
-import android.widget.Toast;
-import android.util.Log;
-import java.sql.SQLException;
 
 public class WordDetailWindow extends Window {
 
@@ -24,6 +31,7 @@ public class WordDetailWindow extends Window {
         void onStatusChanged(ParsedWord word);
     }
 
+    private View popupContainer;
     private TextView wordText;
     private TextView tagText;
     private PitchAccentGraphView pitchGraph;
@@ -53,6 +61,11 @@ public class WordDetailWindow extends Window {
     public WordDetailWindow(Context context, WindowCoordinator windowCoordinator) {
         super(context, windowCoordinator, R.layout.view_popup_word);
         this.reviewController = new ca.fuwafuwa.gaku.Logic.ReviewController(context);
+
+        ViewGroup windowContent = window.findViewById(R.id.content_view);
+        if (windowContent.getChildCount() > 0) {
+            popupContainer = windowContent.getChildAt(0);
+        }
 
         wordText = window.findViewById(R.id.popup_word);
         tagText = window.findViewById(R.id.popup_tag);
@@ -89,15 +102,6 @@ public class WordDetailWindow extends Window {
         });
 
         // Grading Listeners
-        // For Jiten/Anki, these just open the browser. Local status update might need
-        // verification?
-        // For now, assume user handles status manually (via sync) OR we update loosely.
-        // User request: "jpd-breader buttons".
-        // In jpd-breader, clicking a grade sends review.
-        // Since we can't send review to JPDB easily (due to API limit), and Anki opens
-        // a browser window...
-        // We will just proxy the call.
-
         android.view.View.OnClickListener gradeListener = v -> {
             String grade = "good";
             if (v == btnGradeNothing)
@@ -111,7 +115,6 @@ public class WordDetailWindow extends Window {
             if (v == btnGradeEasy)
                 grade = "easy";
             reviewController.grade(currentWord, grade);
-            // No local status update for now as we don't know the result.
         };
 
         btnGradeNothing.setOnClickListener(gradeListener);
@@ -168,7 +171,6 @@ public class WordDetailWindow extends Window {
         if (word.getPitchPattern() != null && word.getReading() != null) {
             pitchGraph.setData(word.getReading(), word.getPitchPattern());
         } else {
-            // Hide or clear pitch graph if no data
             pitchGraph.setData("", "");
         }
 
@@ -200,9 +202,76 @@ public class WordDetailWindow extends Window {
         freqText.setText("POS: " + (word.getPos() != null ? word.getPos() : "Unknown"));
     }
 
-    public void showAt(int x, int y) {
-        params.x = x;
-        params.y = y;
+    /**
+     * Calculates the best position for the popup based on the side of the capture
+     * window
+     * that has the most available screen real estate.
+     */
+    public void showForWordBounds(Rect globalWordRect, Rect captureWindowRect) {
+        if (popupContainer == null)
+            return;
+
+        params.x = 0;
+        params.y = 0;
+
+        popupContainer.post(() -> {
+            Point displaySize = getRealDisplaySize();
+            int popupWidth = popupContainer.getWidth();
+            int popupHeight = popupContainer.getHeight();
+            int padding = GakuTools.dpToPx(context, 10);
+
+            // 1. Calculate gaps on all 4 sides of the Capture Window
+            int topGap = captureWindowRect.top;
+            int bottomGap = displaySize.y - captureWindowRect.bottom;
+            int leftGap = captureWindowRect.left;
+            int rightGap = displaySize.x - captureWindowRect.right;
+
+            // 2. Find the largest gap
+            int maxGap = Math.max(Math.max(topGap, bottomGap), Math.max(leftGap, rightGap));
+
+            int finalX;
+            int finalY;
+
+            // 3. Position based on the largest gap
+            if (maxGap == topGap) {
+                // Place Above
+                finalY = captureWindowRect.top - popupHeight - padding;
+                // Align X with word center
+                finalX = globalWordRect.centerX() - (popupWidth / 2);
+            } else if (maxGap == bottomGap) {
+                // Place Below
+                finalY = captureWindowRect.bottom + padding;
+                // Align X with word center
+                finalX = globalWordRect.centerX() - (popupWidth / 2);
+            } else if (maxGap == leftGap) {
+                // Place Left
+                finalX = captureWindowRect.left - popupWidth - padding;
+                // Align Y with word center
+                finalY = globalWordRect.centerY() - (popupHeight / 2);
+            } else {
+                // Place Right (Default if all equal)
+                finalX = captureWindowRect.right + padding;
+                // Align Y with word center
+                finalY = globalWordRect.centerY() - (popupHeight / 2);
+            }
+
+            // 4. Clamping (Ensure popup stays entirely on screen)
+            // Even if we picked the "best" side, the word might be near the edge of that
+            // side
+            if (finalX < 0)
+                finalX = 0;
+            if (finalX + popupWidth > displaySize.x)
+                finalX = displaySize.x - popupWidth;
+
+            if (finalY < 0)
+                finalY = 0;
+            if (finalY + popupHeight > displaySize.y)
+                finalY = displaySize.y - popupHeight;
+
+            popupContainer.setX(finalX);
+            popupContainer.setY(finalY);
+        });
+
         if (!addedToWindowManager) {
             show();
         } else {
@@ -245,14 +314,36 @@ public class WordDetailWindow extends Window {
     }
 
     @Override
+    public boolean onTouch(MotionEvent e) {
+        if (e.getAction() == MotionEvent.ACTION_UP) {
+            if (popupContainer != null) {
+                int[] location = new int[2];
+                popupContainer.getLocationOnScreen(location);
+                Rect rect = new Rect(location[0], location[1],
+                        location[0] + popupContainer.getWidth(),
+                        location[1] + popupContainer.getHeight());
+
+                if (!rect.contains((int) e.getRawX(), (int) e.getRawY())) {
+                    hide();
+                    return true;
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
     protected WindowManager.LayoutParams getDefaultParams() {
-        WindowManager.LayoutParams params = super.getDefaultParams();
-        params.width = WindowManager.LayoutParams.WRAP_CONTENT;
-        params.height = WindowManager.LayoutParams.WRAP_CONTENT;
-        params.gravity = Gravity.TOP | Gravity.LEFT; // Must be TOP|LEFT for showAt(x, y) to work correctly
-        params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE; // Make it focusable to capture touches
-        params.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL; // Allow touches outside to go to other windows
-        params.alpha = 1.0f; // Full opacity for the detail window
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                Build.VERSION.SDK_INT > 25 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                        : WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+        params.x = 0;
+        params.y = 0;
+        params.gravity = Gravity.TOP | Gravity.LEFT;
         return params;
     }
 }

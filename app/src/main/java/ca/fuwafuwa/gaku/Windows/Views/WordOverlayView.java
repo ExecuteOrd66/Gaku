@@ -5,7 +5,6 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -20,14 +19,10 @@ import ca.fuwafuwa.gaku.R;
 
 import android.graphics.Color;
 import android.util.TypedValue;
-import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import ca.fuwafuwa.gaku.Analysis.ParsedLine;
 import ca.fuwafuwa.gaku.Analysis.ParsedResult;
-import android.text.SpannableString;
-import android.text.style.ClickableSpan;
-import android.text.method.LinkMovementMethod;
 
 public class WordOverlayView extends RelativeLayout {
 
@@ -49,7 +44,10 @@ public class WordOverlayView extends RelativeLayout {
     private OnWordClickListener listener;
 
     public interface OnWordClickListener {
-        void onWordClicked(ParsedWord word);
+        // Updated interface to pass orientation
+        void onWordClicked(ParsedWord word, boolean isVertical);
+
+        void onBlankSpaceClicked();
     }
 
     public WordOverlayView(Context context) {
@@ -130,8 +128,6 @@ public class WordOverlayView extends RelativeLayout {
             boolean isVertical = false;
 
             // Heuristic: If a word is inside a vertical line, it is vertical.
-            // A line is vertical if height > width.
-
             int cx = wRect.centerX();
             int cy = wRect.centerY();
 
@@ -194,7 +190,7 @@ public class WordOverlayView extends RelativeLayout {
                             return true;
                         }
                     }
-                    return false;
+                    return true;
                 }
             });
 
@@ -208,13 +204,34 @@ public class WordOverlayView extends RelativeLayout {
         int localX = (int) (rawX - location[0] - getOffset());
         int localY = (int) (rawY - location[1] - getOffset());
 
-        for (ParsedWord word : words) {
+        for (int i = 0; i < words.size(); i++) {
+            ParsedWord word = words.get(i);
             if (word.getBoundingBox().contains(localX, localY)) {
                 if (listener != null) {
-                    listener.onWordClicked(word);
+                    boolean isVertical = false;
+
+                    // Determine orientation based on settings or calculation
+                    if (textDirection == ca.fuwafuwa.gaku.TextDirection.VERTICAL) {
+                        isVertical = true;
+                    } else if (textDirection == ca.fuwafuwa.gaku.TextDirection.HORIZONTAL) {
+                        isVertical = false;
+                    } else {
+                        // AUTO
+                        if (i < wordOrientations.size()) {
+                            isVertical = wordOrientations.get(i);
+                        } else {
+                            isVertical = word.getBoundingBox().height() > word.getBoundingBox().width();
+                        }
+                    }
+
+                    listener.onWordClicked(word, isVertical);
                 }
                 return;
             }
+        }
+
+        if (listener != null) {
+            listener.onBlankSpaceClicked();
         }
     }
 
@@ -239,7 +256,6 @@ public class WordOverlayView extends RelativeLayout {
 
         java.util.Map<Integer, List<Float>> segmentsByStatus = new java.util.HashMap<>();
 
-        // Iterate by index to access corresponding orientation
         for (int i = 0; i < words.size(); i++) {
             ParsedWord word = words.get(i);
             int status = word.getStatus();
@@ -256,7 +272,6 @@ public class WordOverlayView extends RelativeLayout {
             } else if (textDirection == ca.fuwafuwa.gaku.TextDirection.HORIZONTAL) {
                 isVertical = false;
             } else {
-                // AUTO: Use pre-calculated line-based orientation
                 if (i < wordOrientations.size()) {
                     isVertical = wordOrientations.get(i);
                 } else {
@@ -267,14 +282,11 @@ public class WordOverlayView extends RelativeLayout {
             List<Float> segments = segmentsByStatus.get(status);
 
             if (isVertical) {
-                // Vertical Line on the RIGHT side of the character
-                // x0, y0, x1, y1
                 segments.add((float) (rect.right + offset));
                 segments.add((float) (rect.top + offset + gap));
                 segments.add((float) (rect.right + offset));
                 segments.add((float) (rect.bottom + offset - gap));
             } else {
-                // Horizontal Line on the BOTTOM of the character
                 segments.add((float) (rect.left + offset + gap));
                 segments.add((float) (rect.bottom + offset - 2));
                 segments.add((float) (rect.right + offset - gap));
