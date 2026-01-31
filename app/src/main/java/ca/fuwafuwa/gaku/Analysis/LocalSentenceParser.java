@@ -49,27 +49,18 @@ public class LocalSentenceParser implements SentenceParser {
 
         for (Token token : tokens) {
             String surface = token.getSurface();
-            String reading = token.getReading(); // This is Katakana usually
+            String rawReading = token.getReading(); // This is Katakana usually or "*"
             String baseForm = token.getBaseForm();
 
-            // We don't have the full text layout info here (mlKit Text.Element symbols),
-            // so we'll set a dummy Rect or null. TextAnalyzer will need to handle mapping
-            // if needed,
-            // but for now let's assume this parser is just for the linguistic data.
-            // Wait, TextAnalyzer *was* doing the rect mapping.
-            // The method signature for parse takes just text.
-            // If we want to preserve the rect mapping logic, we might need to pass in the
-            // ML Kit line or symbols.
-            // However, the Jiten API definitely won't return rects.
-            // So the design should probably be: Parser returns linguistic words,
-            // TextAnalyzer maps them to rects.
-            // BUT TextAnalyzer's mapping logic depends on tokenization length matching
-            // source text.
-            // Let's assume for now we just return ParsedWords with null rects and let the
-            // caller handle it or
-            // just use this for the text processing part.
+            // CHANGED: Convert reading to Hiragana for better display
+            String displayReading;
+            if (rawReading == null || rawReading.equals("*")) {
+                displayReading = surface; // Fallback if no reading
+            } else {
+                displayReading = LangUtils.Companion.ConvertKanatanaToHiragana(rawReading);
+            }
 
-            ParsedWord word = new ParsedWord(surface, reading, baseForm, null);
+            ParsedWord word = new ParsedWord(surface, displayReading, baseForm, null);
             word.setPos(token.getPartOfSpeechLevel1());
 
             // 1. Look up status in User DB
@@ -87,23 +78,23 @@ public class LocalSentenceParser implements SentenceParser {
 
             // 2. Look up meaning in JmDict with legacy ranking
             try {
-                String hiraganaReading = LangUtils.Companion.ConvertKanatanaToHiragana(reading);
+                // Use converted reading for lookup (which is correct as logic below used
+                // LangUtils anyway)
+                String hiraganaReading = displayReading;
 
                 List<EntryOptimized> candidates = jmDbHelper.getDao(EntryOptimized.class).queryBuilder()
                         .where().eq("kanji", surface)
                         .or().eq("kanji", baseForm)
-                        .or().like("readings", "%" + reading + "%")
+                        .or().like("readings", "%" + rawReading + "%") // Check katakana too just in case
                         .or().like("readings", "%" + hiraganaReading + "%")
                         .query();
 
-                // If no candidates found, try manual deinflection (legacy fallback)
                 if (candidates.isEmpty()) {
                     List<DeinflectionInfo> deinflections = deinflector.getPotentialDeinflections(surface);
                     for (DeinflectionInfo deinf : deinflections) {
                         List<EntryOptimized> deinfCandidates = jmDbHelper.getDao(EntryOptimized.class).queryBuilder()
                                 .where().eq("kanji", deinf.getWord()).query();
 
-                        // Validate POS for deinflections (legacy logic)
                         for (EntryOptimized entry : deinfCandidates) {
                             if (validateDeinflectionPOS(deinf, entry)) {
                                 candidates.add(entry);
@@ -112,7 +103,7 @@ public class LocalSentenceParser implements SentenceParser {
                     }
                 }
 
-                EntryOptimized bestEntry = rankCandidates(candidates, surface, baseForm, reading, hiraganaReading);
+                EntryOptimized bestEntry = rankCandidates(candidates, surface, baseForm, rawReading, hiraganaReading);
 
                 if (bestEntry != null) {
                     word.setDictionary(bestEntry.getDictionary());
@@ -124,8 +115,11 @@ public class LocalSentenceParser implements SentenceParser {
                     if (meaningPosStr != null) {
                         word.setMeaningPos(new ArrayList<>(Arrays.asList(meaningPosStr.split("\ufffc"))));
                     }
-                    if (word.getReading() == null || word.getReading().isEmpty()) {
-                        word.setPitchPattern(bestEntry.getReadings());
+
+                    // If word reading is empty/fallback, try to get from dictionary entry
+                    if (word.getReading() == null || word.getReading().equals(surface)) {
+                        // This is tricky as readings string is comma separated.
+                        // For now keep the token reading as primary.
                     }
                 }
             } catch (SQLException e) {
@@ -134,7 +128,7 @@ public class LocalSentenceParser implements SentenceParser {
 
             // 3. Look up pitch accent in JmDictFurigana
             try {
-                String hiraganaReading = LangUtils.Companion.ConvertKanatanaToHiragana(reading);
+                String hiraganaReading = displayReading;
                 PitchAccent pitch = pitchDbHelper.getPitchAccentDao().queryBuilder()
                         .where().eq("expression", surface).and().eq("reading", hiraganaReading).queryForFirst();
                 if (pitch == null) {
