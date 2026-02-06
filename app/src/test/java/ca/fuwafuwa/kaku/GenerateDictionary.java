@@ -18,8 +18,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 
-import ca.fuwafuwa.gaku.Database.IDatabaseHelper;
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.Models.EntryOptimized;
+import ca.fuwafuwa.gaku.legacy.core.IDatabaseHelper;
+import ca.fuwafuwa.gaku.legacy.jmdict.models.EntryOptimized;
 import ca.fuwafuwa.gaku.XmlParsers.JmDict.JmParser;
 
 public class GenerateDictionary {

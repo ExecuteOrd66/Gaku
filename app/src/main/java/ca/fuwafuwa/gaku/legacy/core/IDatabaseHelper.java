@@ -1,7 +1,6 @@
-package ca.fuwafuwa.gaku.Database;
+package ca.fuwafuwa.gaku.legacy.core;
 
 import com.j256.ormlite.dao.Dao;
-
 import java.sql.SQLException;
 
 public interface IDatabaseHelper {

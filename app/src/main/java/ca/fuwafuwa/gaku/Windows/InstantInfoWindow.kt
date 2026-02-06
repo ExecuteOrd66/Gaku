@@ -10,7 +10,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import ca.fuwafuwa.gaku.*
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.Models.EntryOptimized
+import ca.fuwafuwa.gaku.legacy.jmdict.models.EntryOptimized
 
 import ca.fuwafuwa.gaku.Search.JmSearchResult
 import ca.fuwafuwa.gaku.Search.SearchInfo

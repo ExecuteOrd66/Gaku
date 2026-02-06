@@ -5,8 +5,8 @@ import android.os.AsyncTask
 import android.util.Log
 import ca.fuwafuwa.gaku.DB_JMDICT_NAME
 import ca.fuwafuwa.gaku.DB_KANJIDICT_NAME
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.JmDatabaseHelper
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.Models.EntryOptimized
+import ca.fuwafuwa.gaku.legacy.jmdict.JmDatabaseHelper
+import ca.fuwafuwa.gaku.legacy.jmdict.models.EntryOptimized
 import ca.fuwafuwa.gaku.Deinflictor.DeinflectionInfo
 import ca.fuwafuwa.gaku.Deinflictor.Deinflector
 import java.sql.SQLException

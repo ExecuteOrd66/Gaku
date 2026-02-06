@@ -1,4 +1,4 @@
-package ca.fuwafuwa.gaku.Database.JmDictFurigana;
+package ca.fuwafuwa.gaku.legacy.furigana;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;

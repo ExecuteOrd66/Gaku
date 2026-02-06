@@ -147,11 +147,6 @@ class MainStartFragment : Fragment()
 
     private fun configureBottomPromo()
     {
-        val adContainer: View? = rootView.findViewById(R.id.adView)
-        if (adContainer != null)
-        {
-            promoView.removeView(adContainer)
-        }
         setupImage()
 
         if (MainService.IsRunning())

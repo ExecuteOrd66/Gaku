@@ -11,8 +11,8 @@ import java.util.List;
 
 import androidx.preference.PreferenceManager;
 
-import ca.fuwafuwa.gaku.Database.User.UserDatabaseHelper;
-import ca.fuwafuwa.gaku.Database.User.UserWord;
+import ca.fuwafuwa.gaku.legacy.user.UserDatabaseHelper;
+import ca.fuwafuwa.gaku.legacy.user.UserWord;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;

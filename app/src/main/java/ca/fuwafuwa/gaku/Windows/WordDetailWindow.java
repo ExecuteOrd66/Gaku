@@ -19,8 +19,8 @@ import java.sql.SQLException;
 import java.util.List;
 
 import ca.fuwafuwa.gaku.Analysis.ParsedWord;
-import ca.fuwafuwa.gaku.Database.User.UserDatabaseHelper;
-import ca.fuwafuwa.gaku.Database.User.UserWord;
+import ca.fuwafuwa.gaku.legacy.user.UserDatabaseHelper;
+import ca.fuwafuwa.gaku.legacy.user.UserWord;
 import ca.fuwafuwa.gaku.GakuTools;
 import ca.fuwafuwa.gaku.R;
 import ca.fuwafuwa.gaku.Windows.Views.PitchAccentGraphView;

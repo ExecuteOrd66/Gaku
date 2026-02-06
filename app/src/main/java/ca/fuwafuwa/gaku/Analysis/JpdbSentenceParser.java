@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import ca.fuwafuwa.gaku.Database.User.UserWord;
+import ca.fuwafuwa.gaku.legacy.user.UserWord;
 import ca.fuwafuwa.gaku.Network.JpdbApiClient;
 import ca.fuwafuwa.gaku.Network.JpdbDTOs;
 

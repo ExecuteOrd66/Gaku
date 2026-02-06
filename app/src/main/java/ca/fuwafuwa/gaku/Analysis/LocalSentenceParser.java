@@ -12,12 +12,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.JmDatabaseHelper;
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.Models.EntryOptimized;
-import ca.fuwafuwa.gaku.Database.JmDictFurigana.PitchAccent;
-import ca.fuwafuwa.gaku.Database.JmDictFurigana.PitchAccentDatabaseHelper;
-import ca.fuwafuwa.gaku.Database.User.UserDatabaseHelper;
-import ca.fuwafuwa.gaku.Database.User.UserWord;
+import ca.fuwafuwa.gaku.legacy.jmdict.JmDatabaseHelper;
+import ca.fuwafuwa.gaku.legacy.jmdict.models.EntryOptimized;
+import ca.fuwafuwa.gaku.legacy.furigana.PitchAccent;
+import ca.fuwafuwa.gaku.legacy.furigana.PitchAccentDatabaseHelper;
+import ca.fuwafuwa.gaku.legacy.user.UserDatabaseHelper;
+import ca.fuwafuwa.gaku.legacy.user.UserWord;
 import ca.fuwafuwa.gaku.Deinflictor.DeinflectionInfo;
 import ca.fuwafuwa.gaku.Deinflictor.Deinflector;
 import ca.fuwafuwa.gaku.LangUtils;

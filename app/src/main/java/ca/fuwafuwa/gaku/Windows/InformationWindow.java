@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ca.fuwafuwa.gaku.Constants;
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.Models.EntryOptimized;
+import ca.fuwafuwa.gaku.legacy.jmdict.models.EntryOptimized;
 import ca.fuwafuwa.gaku.GakuTools;
 import ca.fuwafuwa.gaku.LangUtils;
 import ca.fuwafuwa.gaku.R;

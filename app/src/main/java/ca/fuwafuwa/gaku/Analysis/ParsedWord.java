@@ -4,7 +4,7 @@ import android.graphics.Rect;
 
 import java.util.List;
 
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.Models.EntryOptimized;
+import ca.fuwafuwa.gaku.legacy.jmdict.models.EntryOptimized;
 
 /**
  * Represents a tokenized word with all necessary data for the UI.

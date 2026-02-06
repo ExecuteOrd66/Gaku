@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
-import ca.fuwafuwa.gaku.Database.User.UserDatabaseHelper
+import ca.fuwafuwa.gaku.legacy.user.UserDatabaseHelper
 
 class SettingsFragment : PreferenceFragmentCompat() {
 

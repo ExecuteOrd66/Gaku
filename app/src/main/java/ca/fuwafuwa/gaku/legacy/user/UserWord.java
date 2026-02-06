@@ -1,4 +1,4 @@
-package ca.fuwafuwa.gaku.Database.User;
+package ca.fuwafuwa.gaku.legacy.user;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
