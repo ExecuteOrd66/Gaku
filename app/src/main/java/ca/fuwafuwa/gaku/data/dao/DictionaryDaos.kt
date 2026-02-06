@@ -41,6 +41,10 @@ interface TermDao {
     @Query("SELECT * FROM terms WHERE sequence IN (:sequences)")
     fun findTermsBySequence(sequences: List<Int>): List<Term>
 
+
+    @Query("SELECT * FROM terms WHERE dictionaryId IN (:activeDictionaryIds) AND (expression IN (:variants) OR reading IN (:variants))")
+    fun findTermsByVariants(variants: List<String>, activeDictionaryIds: List<Long>): List<Term>
+
     @Query("SELECT COUNT(*) FROM terms")
     fun count(): Int
 }

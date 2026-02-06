@@ -30,7 +30,6 @@ import ca.fuwafuwa.gaku.Windows.Interfaces.WindowListener
 import ca.fuwafuwa.gaku.Windows.Views.WordOverlayView
 import ca.fuwafuwa.gaku.Analysis.ParsedResult
 import ca.fuwafuwa.gaku.Analysis.ParsedWord
-import ca.fuwafuwa.gaku.XmlParsers.CommonParser
 import java.io.FileOutputStream
 import java.io.IOException
 
@@ -63,8 +62,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     private var mDragOffsetX: Int = 0
     private var mDragOffsetY: Int = 0
 
-    private var mCommonParser: CommonParser? = null
-
     private inner class ScreenshotForOcr(val crop: Bitmap?, val orig: Bitmap?, val params: BoxParams?) {
         fun recycle() {
             if (crop != null && !crop.isRecycled) crop.recycle()
@@ -74,8 +71,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
 
     init
     {
-        this.mCommonParser = CommonParser(context)
-
         mImageView = window.findViewById(R.id.capture_image)
         mWordOverlay = window.findViewById(R.id.word_overlay)
         
