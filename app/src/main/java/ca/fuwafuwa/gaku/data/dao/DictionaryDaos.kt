@@ -45,7 +45,15 @@ interface TermDao {
     fun findTermExact(expression: String, reading: String): List<Term>
 
 
-    @Query("SELECT * FROM terms WHERE dictionaryId IN (:activeDictionaryIds) AND (expression IN (:variants) OR reading IN (:variants))")
+    @Query(
+        """
+        SELECT * FROM terms
+        WHERE dictionaryId IN (:activeDictionaryIds)
+          AND (expression IN (:variants) OR reading IN (:variants))
+        ORDER BY CASE WHEN score <= 0 THEN 2147483647 ELSE score END ASC,
+                 LENGTH(expression) ASC
+        """
+    )
     fun findTermsByVariants(variants: List<String>, activeDictionaryIds: List<Long>): List<Term>
 
     @Query("SELECT COUNT(*) FROM terms")

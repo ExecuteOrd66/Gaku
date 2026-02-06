@@ -139,6 +139,35 @@ class YomitanImporterTest {
         assertNull(missingTag)
     }
 
+
+    @Test
+    fun import_dictionaryFileWithIndexAtEnd_succeeds() {
+        val sourceDir = File("yomichan tests/data/dictionaries/valid-dictionary1")
+        val tempZip = File.createTempFile("yomitan-test-", ".zip")
+
+        try {
+            ZipOutputStream(tempZip.outputStream()).use { zip ->
+                val files = sourceDir.listFiles()?.filter { it.isFile }?.sortedBy { it.name }.orEmpty()
+                files.filter { it.name != "index.json" }.forEach { file ->
+                    zip.putNextEntry(ZipEntry(file.name))
+                    FileInputStream(file).use { input -> input.copyTo(zip) }
+                    zip.closeEntry()
+                }
+                val indexFile = files.first { it.name == "index.json" }
+                zip.putNextEntry(ZipEntry(indexFile.name))
+                FileInputStream(indexFile).use { input -> input.copyTo(zip) }
+                zip.closeEntry()
+            }
+
+            importer.importDictionary(tempZip)
+
+            assertEquals(1, db.dictionaryDao().getAllDictionaries().size)
+            assertEquals(34, db.termDao().count())
+        } finally {
+            tempZip.delete()
+        }
+    }
+
     @Test
     fun import_supportsNestedArchivePaths() {
         val zipBytes = createZipFromDirectory(

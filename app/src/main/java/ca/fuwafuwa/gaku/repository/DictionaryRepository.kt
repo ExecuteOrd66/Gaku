@@ -1,15 +1,19 @@
 package ca.fuwafuwa.gaku.data.repository
 
+import android.content.Context
+import ca.fuwafuwa.gaku.Deinflictor.DeinflectionInfo
+import ca.fuwafuwa.gaku.Deinflictor.Deinflector
 import ca.fuwafuwa.gaku.data.AppDatabase
 import ca.fuwafuwa.gaku.data.Definition
 import ca.fuwafuwa.gaku.data.Term
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class DictionaryRepository(private val db: AppDatabase) {
+class DictionaryRepository(private val db: AppDatabase, context: Context? = null) {
 
     // Cache active dictionary IDs to avoid DB lookups on every keystroke
     private var activeDictIds: List<Long> = emptyList()
+    private val deinflector: Deinflector? = context?.let { Deinflector(it) }
 
     suspend fun refreshActiveDictionaries() = withContext(Dispatchers.IO) {
         activeDictIds = db.dictionaryDao().getAllDictionaries()
@@ -17,44 +21,63 @@ class DictionaryRepository(private val db: AppDatabase) {
             .map { it.id }
     }
 
-    /**
-     * The Main Search Function
-     * 1. Takes raw text.
-     * 2. (Optional) Deinflects it (e.g. "runs" -> "run").
-     * 3. Queries DB for all variants.
-     */
     suspend fun searchTerms(rawQuery: String): List<Term> = withContext(Dispatchers.IO) {
         if (activeDictIds.isEmpty()) refreshActiveDictionaries()
 
-        // 1. Deinflection Logic
-        // In a full app, you would port the 'japanese-transforms.js' logic here.
-        // For now, we simulate a basic deinflector or just use the raw query.
-        val potentialForms = simpleDeinflector(rawQuery)
+        val deinflectionResults = getPotentialForms(rawQuery)
+        val potentialForms = deinflectionResults.map { it.word }.distinct()
 
-        // 2. Query DB
-        return@withContext db.termDao().findTermsByVariants(potentialForms, activeDictIds)
+        val matches = db.termDao().findTermsByVariants(potentialForms, activeDictIds)
+        return@withContext filterMatchesByDeinflection(matches, deinflectionResults)
     }
 
-    /**
-     * Lazy Load Definitions
-     * Called only when the user wants to see details for a specific term.
-     */
     suspend fun getDefinitions(termId: Long): List<Definition> = withContext(Dispatchers.IO) {
         return@withContext db.definitionDao().getDefinitionsForTerm(termId)
     }
 
-    /**
-     * A placeholder for the Deinflector.
-     * In the Yomitan JS code, this is the "Translator" class that uses "Deinflector".
-     */
-    private fun simpleDeinflector(text: String): List<String> {
-        val results = mutableListOf(text)
+    private fun getPotentialForms(text: String): List<DeinflectionInfo> {
+        val real = deinflector?.getPotentialDeinflections(text)
+        if (!real.isNullOrEmpty()) return real
 
-        // Example: If text ends in "imasu", also search for "u"
-        // You will eventually implement the full Yomitan logic here
-        if (text.endsWith("みます")) results.add(text.replace("みます", "む"))
-        if (text.endsWith("食べます")) results.add("食べる")
+        // Fallback for environments where Deinflector cannot be initialized yet.
+        return listOf(DeinflectionInfo(text, 0xFF, ""))
+    }
 
-        return results
+    private fun filterMatchesByDeinflection(
+        terms: List<Term>,
+        deinflections: List<DeinflectionInfo>
+    ): List<Term> {
+        val byWord = deinflections.groupBy { it.word }
+
+        return terms.filter { term ->
+            val candidates = byWord[term.expression].orEmpty() + byWord[term.reading].orEmpty()
+            if (candidates.isEmpty()) {
+                false
+            } else {
+                candidates.any { deinf -> validateDeinflectionType(term.rules, deinf.type) }
+            }
+        }
+    }
+
+    private fun validateDeinflectionType(termRules: String, deinfType: Int): Boolean {
+        if (deinfType == 0xFF || termRules.isBlank()) return true
+
+        val normalizedRules = termRules.split(" ", ",")
+            .map { it.trim().lowercase() }
+            .filter { it.isNotBlank() }
+
+        if (normalizedRules.isEmpty()) return true
+
+        val isV1 = normalizedRules.any { it == "v1" }
+        val isV5 = normalizedRules.any { it.startsWith("v5") }
+        val isAdjI = normalizedRules.any { it == "adj-i" }
+        val isVk = normalizedRules.any { it == "vk" }
+        val isVs = normalizedRules.any { it.startsWith("vs") }
+
+        return ((deinfType and 1) != 0 && isV1) ||
+            ((deinfType and 2) != 0 && isV5) ||
+            ((deinfType and 4) != 0 && isAdjI) ||
+            ((deinfType and 8) != 0 && isVk) ||
+            ((deinfType and 16) != 0 && isVs)
     }
 }
