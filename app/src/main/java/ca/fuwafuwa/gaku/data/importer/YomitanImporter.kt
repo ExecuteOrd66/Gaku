@@ -173,8 +173,7 @@ class YomitanImporter(private val db: AppDatabase) {
                     onyomi = on,
                     kunyomi = kun,
                     tags = tags,
-                    meanings = meaningsList.joinToString("
-")
+                    meanings = meaningsList.joinToString("\n")
                 )
             )
         }
