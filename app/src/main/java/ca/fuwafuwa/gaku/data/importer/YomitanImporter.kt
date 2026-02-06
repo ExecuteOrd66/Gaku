@@ -25,23 +25,25 @@ class YomitanImporter(private val db: AppDatabase) {
         val entries = unzipEntries(inputStream)
         val indexData = entries["index.json"] ?: error("Missing index.json in Yomitan dictionary archive")
 
-        progressCallback("Reading Index...")
-        val dictionaryId = parseAndInsertIndex(ByteArrayInputStream(indexData))
+        db.runInTransaction {
+            progressCallback("Reading Index...")
+            val dictionaryId = parseAndInsertIndex(ByteArrayInputStream(indexData))
 
-        entries.keys.sorted().forEach { name ->
-            val stream = ByteArrayInputStream(entries[name]!!)
-            when {
-                name.startsWith("term_bank") -> {
-                    progressCallback("Importing Terms: $name")
-                    parseAndInsertTerms(stream, dictionaryId)
+            entries.keys.sorted().forEach { name ->
+                val stream = ByteArrayInputStream(entries[name]!!)
+                when {
+                    name.startsWith("term_bank") -> {
+                        progressCallback("Importing Terms: $name")
+                        parseAndInsertTerms(stream, dictionaryId)
+                    }
+                    name.startsWith("kanji_bank") -> {
+                        progressCallback("Importing Kanji: $name")
+                        parseAndInsertKanji(stream, dictionaryId)
+                    }
+                    name.startsWith("term_meta_bank") -> parseAndInsertTermMeta(stream, dictionaryId)
+                    name.startsWith("kanji_meta_bank") -> parseAndInsertKanjiMeta(stream, dictionaryId)
+                    name.startsWith("tag_bank") -> parseAndInsertTagMeta(stream, dictionaryId)
                 }
-                name.startsWith("kanji_bank") -> {
-                    progressCallback("Importing Kanji: $name")
-                    parseAndInsertKanji(stream, dictionaryId)
-                }
-                name.startsWith("term_meta_bank") -> parseAndInsertTermMeta(stream, dictionaryId)
-                name.startsWith("kanji_meta_bank") -> parseAndInsertKanjiMeta(stream, dictionaryId)
-                name.startsWith("tag_bank") -> parseAndInsertTagMeta(stream, dictionaryId)
             }
         }
     }
@@ -54,7 +56,7 @@ class YomitanImporter(private val db: AppDatabase) {
             if (!entry.isDirectory) {
                 val output = ByteArrayOutputStream()
                 zipStream.copyTo(output)
-                entries[entry.name] = output.toByteArray()
+                entries[entry.name.substringAfterLast('/')] = output.toByteArray()
             }
             zipStream.closeEntry()
             entry = zipStream.nextEntry
@@ -73,10 +75,10 @@ class YomitanImporter(private val db: AppDatabase) {
         reader.beginObject()
         while (reader.hasNext()) {
             when (reader.nextName()) {
-                "title" -> title = reader.nextString()
-                "revision" -> revision = reader.nextString()
-                "format", "version" -> format = reader.nextInt()
-                "sequenced" -> sequenced = reader.nextBoolean()
+                "title" -> title = readAsString(reader)
+                "revision" -> revision = readAsString(reader)
+                "format", "version" -> format = readAsInt(reader)
+                "sequenced" -> sequenced = if (reader.peek() == JsonToken.BOOLEAN) reader.nextBoolean() else readAsInt(reader) != 0
                 else -> reader.skipValue()
             }
         }
@@ -90,45 +92,43 @@ class YomitanImporter(private val db: AppDatabase) {
         val reader = JsonReader(InputStreamReader(stream, Charsets.UTF_8))
         reader.beginArray()
 
-        db.runInTransaction {
-            val definitionBuffer = ArrayList<Definition>()
-            while (reader.hasNext()) {
-                reader.beginArray()
-                val expression = readAsString(reader)
-                val reading = readAsString(reader)
-                val tags = readAsString(reader)
-                val rules = readAsString(reader)
-                val score = readAsInt(reader)
-                val definitions = parseGlossary(reader)
-                val sequence = readAsInt(reader)
-                val termTags = if (reader.hasNext()) readAsString(reader) else ""
-                while (reader.hasNext()) reader.skipValue()
-                reader.endArray()
+        val definitionBuffer = ArrayList<Definition>()
+        while (reader.hasNext()) {
+            reader.beginArray()
+            val expression = readAsString(reader)
+            val reading = readAsString(reader)
+            val tags = readAsString(reader)
+            val rules = readAsString(reader)
+            val score = readAsInt(reader)
+            val definitions = parseGlossary(reader)
+            val sequence = readAsInt(reader)
+            val termTags = if (reader.hasNext()) readAsString(reader) else ""
+            while (reader.hasNext()) reader.skipValue()
+            reader.endArray()
 
-                val termId = db.termDao().insert(
-                    Term(
-                        dictionaryId = dictId,
-                        expression = expression,
-                        reading = reading,
-                        tags = tags,
-                        rules = rules,
-                        score = score,
-                        sequence = sequence,
-                        termTags = termTags
-                    )
+            val termId = db.termDao().insert(
+                Term(
+                    dictionaryId = dictId,
+                    expression = expression,
+                    reading = reading,
+                    tags = tags,
+                    rules = rules,
+                    score = score,
+                    sequence = sequence,
+                    termTags = termTags
                 )
+            )
 
-                definitions.forEach { def ->
-                    definitionBuffer.add(Definition(termId = termId, content = def.first, type = def.second))
-                }
-                if (definitionBuffer.size >= 1000) {
-                    db.definitionDao().insertAll(definitionBuffer)
-                    definitionBuffer.clear()
-                }
+            definitions.forEach { def ->
+                definitionBuffer.add(Definition(termId = termId, content = def.first, type = def.second))
             }
-            if (definitionBuffer.isNotEmpty()) {
+            if (definitionBuffer.size >= 1000) {
                 db.definitionDao().insertAll(definitionBuffer)
+                definitionBuffer.clear()
             }
+        }
+        if (definitionBuffer.isNotEmpty()) {
+            db.definitionDao().insertAll(definitionBuffer)
         }
         reader.endArray()
     }
@@ -163,7 +163,6 @@ class YomitanImporter(private val db: AppDatabase) {
             reader.beginArray()
             while (reader.hasNext()) meaningsList.add(readAsString(reader))
             reader.endArray()
-            if (reader.hasNext()) reader.skipValue()
             while (reader.hasNext()) reader.skipValue()
             reader.endArray()
 

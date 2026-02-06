@@ -55,12 +55,25 @@ class YomitanImporterTest {
     }
 
     @Test
-    fun import_validDictionary_supportsTermQueriesFromPortedCases() {
+    fun import_validDictionary_supportsPortedFindTermsBulkCases() {
         val zipBytes = createZipFromDirectory(File("yomichan tests/data/dictionaries/valid-dictionary1"))
         importer.importDictionary(zipBytes.inputStream())
 
         val exact = db.termDao().findTermsExact(listOf("打", "打つ", "打ち込む"))
         assertEquals(10, exact.size)
+
+        val byExpression = exact.groupingBy { it.expression }.eachCount()
+        assertEquals(2, byExpression["打"])
+        assertEquals(4, byExpression["打つ"])
+        assertEquals(4, byExpression["打ち込む"])
+
+        val byReading = exact.groupingBy { it.reading }.eachCount()
+        assertEquals(1, byReading["だ"])
+        assertEquals(1, byReading["ダース"])
+        assertEquals(2, byReading["うつ"])
+        assertEquals(2, byReading["ぶつ"])
+        assertEquals(2, byReading["うちこむ"])
+        assertEquals(2, byReading["ぶちこむ"])
 
         val prefix = db.termDao().findTermsByPrefix("打")
         assertEquals(10, prefix.size)
@@ -68,18 +81,43 @@ class YomitanImporterTest {
         val suffix = db.termDao().findTermsBySuffix("込む")
         assertEquals(4, suffix.size)
 
-        val sequences = db.termDao().findTermsBySequence(listOf(1, 2, 3))
-        assertTrue(sequences.isNotEmpty())
+        val noExactMatch = db.termDao().findTermsExact(listOf("込む"))
+        assertTrue(noExactMatch.isEmpty())
     }
 
-    private fun createZipFromDirectory(directory: File): ByteArray {
+    @Test
+    fun import_supportsNestedArchivePaths() {
+        val zipBytes = createZipFromDirectory(
+            directory = File("yomichan tests/data/dictionaries/valid-dictionary1"),
+            prefix = "nested/"
+        )
+
+        importer.importDictionary(zipBytes.inputStream())
+
+        assertEquals(1, db.dictionaryDao().getAllDictionaries().size)
+        assertEquals(34, db.termDao().count())
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun import_missingIndex_throws() {
+        val out = ByteArrayOutputStream()
+        ZipOutputStream(out).use { zip ->
+            zip.putNextEntry(ZipEntry("term_bank_1.json"))
+            zip.write("[]".toByteArray())
+            zip.closeEntry()
+        }
+
+        importer.importDictionary(out.toByteArray().inputStream())
+    }
+
+    private fun createZipFromDirectory(directory: File, prefix: String = ""): ByteArray {
         val out = ByteArrayOutputStream()
         ZipOutputStream(out).use { zip ->
             directory.listFiles()
                 ?.filter { it.isFile }
                 ?.sortedBy { it.name }
                 ?.forEach { file ->
-                    zip.putNextEntry(ZipEntry(file.name))
+                    zip.putNextEntry(ZipEntry(prefix + file.name))
                     FileInputStream(file).use { input -> input.copyTo(zip) }
                     zip.closeEntry()
                 }
