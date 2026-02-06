@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ca.fuwafuwa.gaku.Analysis.ParsedWord;
-import ca.fuwafuwa.gaku.Database.User.UserWord;
+import ca.fuwafuwa.gaku.legacy.user.UserWord;
 import ca.fuwafuwa.gaku.R;
 
 import android.graphics.Color;

@@ -7,11 +7,22 @@ import androidx.room.RoomDatabase
 import ca.fuwafuwa.gaku.data.dao.DefinitionDao
 import ca.fuwafuwa.gaku.data.dao.DictionaryDao
 import ca.fuwafuwa.gaku.data.dao.KanjiDao
+import ca.fuwafuwa.gaku.data.dao.KanjiMetaDao
+import ca.fuwafuwa.gaku.data.dao.TagMetaDao
 import ca.fuwafuwa.gaku.data.dao.TermDao
+import ca.fuwafuwa.gaku.data.dao.TermMetaDao
 
 @Database(
-    entities = [Dictionary::class, Term::class, Definition::class, Kanji::class],
-    version = 1,
+    entities = [
+        Dictionary::class,
+        Term::class,
+        Definition::class,
+        Kanji::class,
+        TermMeta::class,
+        KanjiMeta::class,
+        TagMeta::class
+    ],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -19,6 +30,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun termDao(): TermDao
     abstract fun definitionDao(): DefinitionDao
     abstract fun kanjiDao(): KanjiDao
+    abstract fun termMetaDao(): TermMetaDao
+    abstract fun kanjiMetaDao(): KanjiMetaDao
+    abstract fun tagMetaDao(): TagMetaDao
 
     companion object {
         @Volatile
@@ -31,7 +45,6 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "gaku_yomitan.db"
                 )
-                    // Pre-populating or migration logic goes here
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

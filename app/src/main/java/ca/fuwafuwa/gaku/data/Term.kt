@@ -1,10 +1,16 @@
 package ca.fuwafuwa.gaku.data
 
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
 @Entity(
     tableName = "terms",
     indices = [
         Index(value = ["expression"]),
         Index(value = ["reading"]),
+        Index(value = ["sequence"]),
         Index(value = ["dictionaryId"])
     ],
     foreignKeys = [
@@ -21,8 +27,9 @@ data class Term(
     val dictionaryId: Long,
     val expression: String,
     val reading: String,
-    val tags: String,   // Space-separated tags (e.g., "noun common")
-    val rules: String,  // Deinflection rules
-    val score: Int,     // Frequency score
-    val sequence: Int   // Entry sequence number
+    val tags: String,
+    val rules: String,
+    val score: Int,
+    val sequence: Int,
+    val termTags: String = ""
 )

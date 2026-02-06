@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import ca.fuwafuwa.gaku.Analysis.ParsedWord;
-import ca.fuwafuwa.gaku.Database.User.UserWord;
+import ca.fuwafuwa.gaku.legacy.user.UserWord;
 import ca.fuwafuwa.gaku.Network.AnkiConnectClient;
 import ca.fuwafuwa.gaku.Network.JitenApiClient;
 import ca.fuwafuwa.gaku.Network.JpdbApiClient;

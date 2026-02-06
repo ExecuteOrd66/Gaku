@@ -1,4 +1,4 @@
-package ca.fuwafuwa.gaku.Database.User;
+package ca.fuwafuwa.gaku.legacy.user;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -10,7 +10,7 @@ import com.j256.ormlite.table.TableUtils;
 
 import java.sql.SQLException;
 
-import ca.fuwafuwa.gaku.Database.DatabaseHelper;
+import ca.fuwafuwa.gaku.legacy.core.DatabaseHelper;
 
 public class UserDatabaseHelper extends DatabaseHelper {
 

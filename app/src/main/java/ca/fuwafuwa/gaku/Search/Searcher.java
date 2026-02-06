@@ -9,8 +9,8 @@ import org.jetbrains.annotations.NotNull;
 import java.sql.SQLException;
 import java.util.List;
 
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.Models.EntryOptimized;
-import ca.fuwafuwa.gaku.Database.KanjiDict2Database.Models.CharacterOptimized;
+import ca.fuwafuwa.gaku.legacy.jmdict.models.EntryOptimized;
+import ca.fuwafuwa.gaku.legacy.kanjidict.models.CharacterOptimized;
 
 /**
  * Created by 0xbad1d3a5 on 8/28/2016.

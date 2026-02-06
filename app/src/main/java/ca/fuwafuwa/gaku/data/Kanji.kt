@@ -1,8 +1,13 @@
 package ca.fuwafuwa.gaku.data
 
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
 @Entity(
     tableName = "kanji",
-    indices = [Index(value = ["character"])],
+    indices = [Index(value = ["character"]), Index(value = ["dictionaryId"])],
     foreignKeys = [
         ForeignKey(
             entity = Dictionary::class,
@@ -16,9 +21,8 @@ data class Kanji(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val dictionaryId: Long,
     val character: String,
-    val onyomi: String,  // Space separated
-    val kunyomi: String, // Space separated
+    val onyomi: String,
+    val kunyomi: String,
     val tags: String,
-    val meanings: String // Newline separated
-    // Stats can be added here as JSON or columns
+    val meanings: String
 )

@@ -1,4 +1,4 @@
-package ca.fuwafuwa.gaku.Database.JmDictFurigana;
+package ca.fuwafuwa.gaku.legacy.furigana;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -11,7 +11,7 @@ import com.j256.ormlite.table.TableUtils;
 import java.sql.SQLException;
 
 import ca.fuwafuwa.gaku.Constants;
-import ca.fuwafuwa.gaku.Database.DatabaseHelper;
+import ca.fuwafuwa.gaku.legacy.core.DatabaseHelper;
 
 public class PitchAccentDatabaseHelper extends DatabaseHelper {
 

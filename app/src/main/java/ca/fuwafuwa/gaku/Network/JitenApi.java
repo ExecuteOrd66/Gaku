@@ -1,7 +1,7 @@
 package ca.fuwafuwa.gaku.Network;
 
 import java.util.List;
-import ca.fuwafuwa.gaku.Database.User.UserWord;
+import ca.fuwafuwa.gaku.legacy.user.UserWord;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;

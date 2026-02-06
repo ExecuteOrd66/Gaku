@@ -12,7 +12,7 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import ca.fuwafuwa.gaku.DB_JMDICT_NAME
-import ca.fuwafuwa.gaku.Database.JmDictDatabase.Models.EntryOptimized
+import ca.fuwafuwa.gaku.legacy.jmdict.models.EntryOptimized
 import ca.fuwafuwa.gaku.LangUtils
 import ca.fuwafuwa.gaku.R
 import ca.fuwafuwa.gaku.Search.JmSearchResult
