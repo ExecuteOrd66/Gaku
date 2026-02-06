@@ -1,10 +1,7 @@
 package ca.fuwafuwa.gaku
 
-import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.net.ConnectivityManager
-import android.net.NetworkInfo
 import android.net.Uri
 import android.os.Bundle
 import android.text.SpannableStringBuilder
@@ -21,7 +18,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import com.google.android.gms.ads.*
 import java.util.*
 
 
@@ -43,29 +39,14 @@ class MainStartFragment : Fragment()
     private lateinit var progressBar : ProgressBar
 
     private lateinit var promoView : ViewGroup
-    private lateinit var adView : AdView
     private lateinit var saeView : ImageView
 
     private lateinit var imgData : ImgData
 
-    private var showAds = false
 
     override fun onCreate(savedInstanceState: Bundle?)
     {
         super.onCreate(savedInstanceState)
-
-        // Switch off deprecated network API
-        val cm = requireActivity().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetwork: NetworkInfo? = cm.activeNetworkInfo
-
-        val adsEnabled = false
-        val internetEnabled = activeNetwork?.isConnectedOrConnecting == true
-
-        showAds = adsEnabled && internetEnabled
-        if (showAds)
-        {
-            MobileAds.initialize(requireActivity())
-        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -86,10 +67,9 @@ class MainStartFragment : Fragment()
         progressBar = rootView.findViewById(R.id.progress_bar)
 
         promoView = rootView.findViewById(R.id.promoView)
-        adView = rootView.findViewById(R.id.adView)
         saeView = rootView.findViewById(R.id.saeView)
 
-        configureBottomPromo(showAds)
+        configureBottomPromo()
 
         tutorialText.setOnClickListener {
             startActivity(Intent(mainActivity, TutorialActivity::class.java))
@@ -135,12 +115,6 @@ class MainStartFragment : Fragment()
     {
         super.onResume()
 
-        if (showAds)
-        {
-            val adRequest = AdRequest.Builder().build()
-            adView.loadAd(adRequest)
-        }
-
         if (!MainService.IsRunning())
         {
             onGakuLoadStart()
@@ -171,39 +145,18 @@ class MainStartFragment : Fragment()
         writeSupportText()
     }
 
-    private fun configureBottomPromo(adsEnabled: Boolean)
+    private fun configureBottomPromo()
     {
-        if (adsEnabled)
+        val adContainer: View? = rootView.findViewById(R.id.adView)
+        if (adContainer != null)
         {
-            promoView.removeView(saeView)
-            setupAds()
+            promoView.removeView(adContainer)
         }
-        else
-        {
-            promoView.removeView(adView)
-            setupImage()
-        }
+        setupImage()
 
         if (MainService.IsRunning())
         {
             onGakuLoaded()
-        }
-    }
-
-    private fun setupAds()
-    {
-        adView.adListener = object: AdListener()
-        {
-            override fun onAdLoaded()
-            {
-                super.onAdLoaded()
-                mainActivity.startGaku(this@MainStartFragment)
-            }
-
-            override fun onAdFailedToLoad(p0: LoadAdError) {
-                super.onAdFailedToLoad(p0)
-                mainActivity.startGaku(this@MainStartFragment)
-            }
         }
     }
 
@@ -462,7 +415,7 @@ class MainStartFragment : Fragment()
 
     private fun writeSupportText()
     {
-        if (!showAds && imgData.hasImg)
+        if (imgData.hasImg)
         {
             val saeName = "小早川紗枝"
             val artText = "\uD83C\uDF38 $saeName by ${imgData.name} \uD83C\uDF38"
