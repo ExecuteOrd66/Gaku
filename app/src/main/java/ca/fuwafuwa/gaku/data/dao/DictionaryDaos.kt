@@ -59,8 +59,8 @@ interface KanjiDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAll(kanji: List<Kanji>)
 
-    @Query("SELECT * FROM kanji WHERE character = :char")
-    fun findKanji(char: String): List<Kanji>
+    @Query("SELECT * FROM kanji WHERE character = :characterQuery AND dictionaryId IN (:activeDictionaryIds)")
+    fun findKanji(characterQuery: String, activeDictionaryIds: List<Long>): List<Kanji>
 
     @Query("SELECT COUNT(*) FROM kanji")
     fun count(): Int
