@@ -55,6 +55,8 @@ android {
 }
 
 dependencies {
+    def roomVersion = '2.8.0'
+
     implementation 'com.google.mlkit:text-recognition-japanese:16.0.1'
     implementation 'com.google.guava:guava:31.0.1-android'
     implementation 'com.google.code.gson:gson:2.8.9'
@@ -75,7 +77,7 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.11.1'
     testImplementation 'androidx.test:core:1.5.0'
-    testImplementation "androidx.room:room-testing:2.6.1"
+    testImplementation "androidx.room:room-testing:${roomVersion}"
     testImplementation 'com.j256.ormlite:ormlite-core:5.1'
     testImplementation 'com.j256.ormlite:ormlite-jdbc:5.1'
     testImplementation 'org.xerial:sqlite-jdbc:3.25.2'
@@ -83,9 +85,9 @@ dependencies {
     testImplementation 'kxml2:kxml2:2.3.0'
 
     // Room components
-    implementation "androidx.room:room-runtime:2.6.1"
-    implementation "androidx.room:room-ktx:2.6.1"
-    kapt "androidx.room:room-compiler:2.6.1" // Use ksp if using Kotlin Symbol Processing
+    implementation "androidx.room:room-runtime:${roomVersion}"
+    implementation "androidx.room:room-ktx:${roomVersion}"
+    kapt "androidx.room:room-compiler:${roomVersion}" // Use ksp if using Kotlin Symbol Processing
 
     // GSON for Streaming JSON Parsing
     implementation 'com.google.code.gson:gson:2.10.1'
