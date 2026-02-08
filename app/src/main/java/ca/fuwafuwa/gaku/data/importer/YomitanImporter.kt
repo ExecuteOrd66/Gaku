@@ -11,58 +11,62 @@ import ca.fuwafuwa.gaku.data.TermMeta
 import com.google.gson.Gson
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.util.zip.ZipInputStream
+import java.util.zip.ZipFile
 
 class YomitanImporter(private val db: AppDatabase) {
 
     private val gson = Gson()
 
     fun importDictionary(inputStream: InputStream, progressCallback: (String) -> Unit = {}) {
-        val entries = unzipEntries(inputStream)
-        val indexData = entries["index.json"] ?: error("Missing index.json in Yomitan dictionary archive")
-
-        db.runInTransaction {
-            progressCallback("Reading Index...")
-            val dictionaryId = parseAndInsertIndex(ByteArrayInputStream(indexData))
-
-            entries.keys.sorted().forEach { name ->
-                val stream = ByteArrayInputStream(entries[name]!!)
-                when {
-                    name.startsWith("term_bank") -> {
-                        progressCallback("Importing Terms: $name")
-                        parseAndInsertTerms(stream, dictionaryId)
-                    }
-                    name.startsWith("kanji_bank") -> {
-                        progressCallback("Importing Kanji: $name")
-                        parseAndInsertKanji(stream, dictionaryId)
-                    }
-                    name.startsWith("term_meta_bank") -> parseAndInsertTermMeta(stream, dictionaryId)
-                    name.startsWith("kanji_meta_bank") -> parseAndInsertKanjiMeta(stream, dictionaryId)
-                    name.startsWith("tag_bank") -> parseAndInsertTagMeta(stream, dictionaryId)
-                }
-            }
+        val tempZip = File.createTempFile("gaku-yomitan-", ".zip")
+        try {
+            tempZip.outputStream().use { output -> inputStream.copyTo(output) }
+            importDictionary(tempZip, progressCallback)
+        } finally {
+            tempZip.delete()
         }
     }
 
-    private fun unzipEntries(inputStream: InputStream): Map<String, ByteArray> {
-        val zipStream = ZipInputStream(inputStream)
-        val entries = linkedMapOf<String, ByteArray>()
-        var entry = zipStream.nextEntry
-        while (entry != null) {
-            if (!entry.isDirectory) {
-                val output = ByteArrayOutputStream()
-                zipStream.copyTo(output)
-                entries[entry.name.substringAfterLast('/')] = output.toByteArray()
+    fun importDictionary(zipArchive: File, progressCallback: (String) -> Unit = {}) {
+        ZipFile(zipArchive).use { zip ->
+            val indexEntry = zip.entries().asSequence()
+                .firstOrNull { !it.isDirectory && it.name.substringAfterLast('/') == "index.json" }
+                ?: throw IllegalStateException("Missing index.json in Yomitan dictionary archive")
+
+            progressCallback("Reading Index...")
+            val dictionaryId = db.runInTransaction<Long> {
+                zip.getInputStream(indexEntry).use { parseAndInsertIndex(it) }
             }
-            zipStream.closeEntry()
-            entry = zipStream.nextEntry
+
+            val orderedEntries = zip.entries().asSequence()
+                .filter { !it.isDirectory }
+                .sortedBy { it.name.substringAfterLast('/') }
+                .toList()
+
+            for (entry in orderedEntries) {
+                val name = entry.name.substringAfterLast('/')
+                if (name == "index.json") continue
+
+                zip.getInputStream(entry).use { stream ->
+                    when {
+                        name.startsWith("term_bank") -> {
+                            progressCallback("Importing Terms: $name")
+                            parseAndInsertTerms(stream, dictionaryId)
+                        }
+                        name.startsWith("kanji_bank") -> {
+                            progressCallback("Importing Kanji: $name")
+                            parseAndInsertKanji(stream, dictionaryId)
+                        }
+                        name.startsWith("term_meta_bank") -> parseAndInsertTermMeta(stream, dictionaryId)
+                        name.startsWith("kanji_meta_bank") -> parseAndInsertKanjiMeta(stream, dictionaryId)
+                        name.startsWith("tag_bank") -> parseAndInsertTagMeta(stream, dictionaryId)
+                    }
+                }
+            }
         }
-        zipStream.close()
-        return entries
     }
 
     private fun parseAndInsertIndex(stream: InputStream): Long {
@@ -123,12 +127,16 @@ class YomitanImporter(private val db: AppDatabase) {
                 definitionBuffer.add(Definition(termId = termId, content = def.first, type = def.second))
             }
             if (definitionBuffer.size >= 1000) {
-                db.definitionDao().insertAll(definitionBuffer)
+                db.runInTransaction {
+                    db.definitionDao().insertAll(definitionBuffer)
+                }
                 definitionBuffer.clear()
             }
         }
         if (definitionBuffer.isNotEmpty()) {
-            db.definitionDao().insertAll(definitionBuffer)
+            db.runInTransaction {
+                db.definitionDao().insertAll(definitionBuffer)
+            }
         }
         reader.endArray()
     }
@@ -138,7 +146,7 @@ class YomitanImporter(private val db: AppDatabase) {
         reader.beginArray()
         while (reader.hasNext()) {
             when (reader.peek()) {
-                JsonToken.STRING -> defs.add(reader.nextString() to "text")
+                JsonToken.STRING -> defs.add(reader.nextString().trim() to "text")
                 else -> {
                     val obj = gson.fromJson<Any>(reader, Any::class.java)
                     defs.add(gson.toJson(obj) to "structured")
@@ -161,7 +169,7 @@ class YomitanImporter(private val db: AppDatabase) {
             val tags = readAsString(reader)
             val meaningsList = mutableListOf<String>()
             reader.beginArray()
-            while (reader.hasNext()) meaningsList.add(readAsString(reader))
+            while (reader.hasNext()) meaningsList.add(readAsString(reader).trim())
             reader.endArray()
             while (reader.hasNext()) reader.skipValue()
             reader.endArray()
@@ -263,7 +271,7 @@ class YomitanImporter(private val db: AppDatabase) {
 
     private fun readUnknownAsJsonOrString(reader: JsonReader): String {
         return when (reader.peek()) {
-            JsonToken.STRING -> reader.nextString()
+            JsonToken.STRING -> reader.nextString().trim()
             JsonToken.NUMBER -> reader.nextString()
             JsonToken.BOOLEAN -> reader.nextBoolean().toString()
             JsonToken.NULL -> {

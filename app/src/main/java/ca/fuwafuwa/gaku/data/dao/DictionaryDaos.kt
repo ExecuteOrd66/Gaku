@@ -41,8 +41,19 @@ interface TermDao {
     @Query("SELECT * FROM terms WHERE sequence IN (:sequences)")
     fun findTermsBySequence(sequences: List<Int>): List<Term>
 
+    @Query("SELECT * FROM terms WHERE expression = :expression AND reading = :reading")
+    fun findTermExact(expression: String, reading: String): List<Term>
 
-    @Query("SELECT * FROM terms WHERE dictionaryId IN (:activeDictionaryIds) AND (expression IN (:variants) OR reading IN (:variants))")
+
+    @Query(
+        """
+        SELECT * FROM terms
+        WHERE dictionaryId IN (:activeDictionaryIds)
+          AND (expression IN (:variants) OR reading IN (:variants))
+        ORDER BY CASE WHEN score <= 0 THEN 2147483647 ELSE score END ASC,
+                 LENGTH(expression) ASC
+        """
+    )
     fun findTermsByVariants(variants: List<String>, activeDictionaryIds: List<Long>): List<Term>
 
     @Query("SELECT COUNT(*) FROM terms")
@@ -68,6 +79,9 @@ interface KanjiDao {
 
     @Query("SELECT COUNT(*) FROM kanji")
     fun count(): Int
+
+    @Query("SELECT * FROM kanji WHERE character IN (:characters)")
+    fun findKanjiBulk(characters: List<String>): List<Kanji>
 }
 
 @Dao
@@ -77,6 +91,9 @@ interface TermMetaDao {
 
     @Query("SELECT COUNT(*) FROM term_meta")
     fun count(): Int
+
+    @Query("SELECT * FROM term_meta WHERE expression IN (:expressions)")
+    fun findByExpressions(expressions: List<String>): List<TermMeta>
 }
 
 @Dao
@@ -86,6 +103,9 @@ interface KanjiMetaDao {
 
     @Query("SELECT COUNT(*) FROM kanji_meta")
     fun count(): Int
+
+    @Query("SELECT * FROM kanji_meta WHERE character IN (:characters)")
+    fun findByCharacters(characters: List<String>): List<KanjiMeta>
 }
 
 @Dao
@@ -95,4 +115,14 @@ interface TagMetaDao {
 
     @Query("SELECT COUNT(*) FROM tag_meta")
     fun count(): Int
+
+    @Query(
+        """
+        SELECT tag_meta.* FROM tag_meta
+        INNER JOIN dictionaries ON dictionaries.id = tag_meta.dictionaryId
+        WHERE tag_meta.name = :name AND dictionaries.name = :dictionaryName
+        LIMIT 1
+        """
+    )
+    fun findTagByNameAndDictionary(name: String, dictionaryName: String): TagMeta?
 }
