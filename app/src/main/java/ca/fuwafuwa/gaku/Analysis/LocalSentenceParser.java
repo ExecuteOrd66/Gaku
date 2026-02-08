@@ -1,7 +1,6 @@
 package ca.fuwafuwa.gaku.Analysis;
 
 import android.content.Context;
-import android.graphics.Rect;
 import android.util.Log;
 
 import com.atilika.kuromoji.ipadic.Token;
@@ -9,13 +8,13 @@ import com.atilika.kuromoji.ipadic.Tokenizer;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import ca.fuwafuwa.gaku.legacy.jmdict.JmDatabaseHelper;
-import ca.fuwafuwa.gaku.legacy.jmdict.models.EntryOptimized;
-import ca.fuwafuwa.gaku.legacy.furigana.PitchAccent;
-import ca.fuwafuwa.gaku.legacy.furigana.PitchAccentDatabaseHelper;
+import ca.fuwafuwa.gaku.data.AppDatabase;
+import ca.fuwafuwa.gaku.data.Definition;
+import ca.fuwafuwa.gaku.data.Dictionary;
+import ca.fuwafuwa.gaku.data.Term;
 import ca.fuwafuwa.gaku.legacy.user.UserDatabaseHelper;
 import ca.fuwafuwa.gaku.legacy.user.UserWord;
 import ca.fuwafuwa.gaku.Deinflictor.DeinflectionInfo;
@@ -24,19 +23,17 @@ import ca.fuwafuwa.gaku.LangUtils;
 
 public class LocalSentenceParser implements SentenceParser {
 
-    private static final String TAG = LocalSentenceParser.class.getName();
+    private static final String TAG = "LocalSentenceParser";
 
     private Tokenizer tokenizer;
     private UserDatabaseHelper userDbHelper;
-    private JmDatabaseHelper jmDbHelper;
-    private PitchAccentDatabaseHelper pitchDbHelper;
+    private AppDatabase appDatabase;
     private Deinflector deinflector;
 
     public LocalSentenceParser(Context context) {
         this.tokenizer = new Tokenizer();
         this.userDbHelper = UserDatabaseHelper.instance(context);
-        this.jmDbHelper = JmDatabaseHelper.instance(context);
-        this.pitchDbHelper = PitchAccentDatabaseHelper.instance(context);
+        this.appDatabase = AppDatabase.Companion.getDatabase(context);
         this.deinflector = new Deinflector(context);
     }
 
@@ -45,17 +42,19 @@ public class LocalSentenceParser implements SentenceParser {
         List<Token> tokens = tokenizer.tokenize(text);
         List<ParsedWord> words = new ArrayList<>();
 
-        int charIndex = 0;
+        List<Long> activeDictIds = appDatabase.dictionaryDao().getAllDictionaries().stream()
+                .filter(Dictionary::isEnabled)
+                .map(Dictionary::getId)
+                .collect(Collectors.toList());
 
         for (Token token : tokens) {
             String surface = token.getSurface();
-            String rawReading = token.getReading(); // This is Katakana usually or "*"
+            String rawReading = token.getReading();
             String baseForm = token.getBaseForm();
 
-            // CHANGED: Convert reading to Hiragana for better display
             String displayReading;
             if (rawReading == null || rawReading.equals("*")) {
-                displayReading = surface; // Fallback if no reading
+                displayReading = surface;
             } else {
                 displayReading = LangUtils.Companion.ConvertKanatanaToHiragana(rawReading);
             }
@@ -69,77 +68,42 @@ public class LocalSentenceParser implements SentenceParser {
                         .where().eq("text", surface).queryForFirst();
                 if (userWord != null) {
                     word.setStatus(userWord.getStatus());
-                } else {
-                    word.setStatus(UserWord.STATUS_UNKNOWN);
                 }
             } catch (SQLException e) {
-                Log.e(TAG, "Failed to query user word", e);
+                Log.e(TAG, "User DB query failed", e);
             }
 
-            // 2. Look up meaning in JmDict with legacy ranking
-            try {
-                // Use converted reading for lookup (which is correct as logic below used
-                // LangUtils anyway)
-                String hiraganaReading = displayReading;
+            // 2. Look up all matching terms in AppDatabase (Yomitan)
+            if (!activeDictIds.isEmpty()) {
+                List<Term> matchingTerms = findMatchingTerms(surface, baseForm, activeDictIds);
 
-                List<EntryOptimized> candidates = jmDbHelper.getDao(EntryOptimized.class).queryBuilder()
-                        .where().eq("kanji", surface)
-                        .or().eq("kanji", baseForm)
-                        .or().like("readings", "%" + rawReading + "%") // Check katakana too just in case
-                        .or().like("readings", "%" + hiraganaReading + "%")
-                        .query();
+                if (!matchingTerms.isEmpty()) {
+                    word.setDictionary("Yomitan");
+                    List<String> allFormattedMeanings = new ArrayList<>();
 
-                if (candidates.isEmpty()) {
-                    List<DeinflectionInfo> deinflections = deinflector.getPotentialDeinflections(surface);
-                    for (DeinflectionInfo deinf : deinflections) {
-                        List<EntryOptimized> deinfCandidates = jmDbHelper.getDao(EntryOptimized.class).queryBuilder()
-                                .where().eq("kanji", deinf.getWord()).query();
+                    for (Term term : matchingTerms) {
+                        // Create a Header for each entry: 【Kanji】 (Reading) [Tags]
+                        String tags = term.getTermTags().isEmpty() ? ""
+                                : " [" + term.getTermTags().replace(" ", ", ") + "]";
+                        String header = String.format("【%s】 (%s)%s",
+                                term.getExpression(),
+                                term.getReading(),
+                                tags);
 
-                        for (EntryOptimized entry : deinfCandidates) {
-                            if (validateDeinflectionPOS(deinf, entry)) {
-                                candidates.add(entry);
+                        allFormattedMeanings.add(header);
+
+                        // Add definitions for this specific term
+                        List<Definition> defs = term.getDefinitions();
+                        if (defs != null) {
+                            for (Definition def : defs) {
+                                allFormattedMeanings.add("  • " + def.getContent());
                             }
                         }
+                        // Add a spacer between different dictionary terms
+                        allFormattedMeanings.add("");
                     }
+                    word.setMeanings(allFormattedMeanings);
                 }
-
-                EntryOptimized bestEntry = rankCandidates(candidates, surface, baseForm, rawReading, hiraganaReading);
-
-                if (bestEntry != null) {
-                    word.setDictionary(bestEntry.getDictionary());
-                    String meaningsStr = bestEntry.getMeanings();
-                    if (meaningsStr != null) {
-                        word.setMeanings(new ArrayList<>(Arrays.asList(meaningsStr.split("\ufffc"))));
-                    }
-                    String meaningPosStr = bestEntry.getPos();
-                    if (meaningPosStr != null) {
-                        word.setMeaningPos(new ArrayList<>(Arrays.asList(meaningPosStr.split("\ufffc"))));
-                    }
-
-                    // If word reading is empty/fallback, try to get from dictionary entry
-                    if (word.getReading() == null || word.getReading().equals(surface)) {
-                        // This is tricky as readings string is comma separated.
-                        // For now keep the token reading as primary.
-                    }
-                }
-            } catch (SQLException e) {
-                Log.e(TAG, "Failed to query dictionaries", e);
-            }
-
-            // 3. Look up pitch accent in JmDictFurigana
-            try {
-                String hiraganaReading = displayReading;
-                PitchAccent pitch = pitchDbHelper.getPitchAccentDao().queryBuilder()
-                        .where().eq("expression", surface).and().eq("reading", hiraganaReading).queryForFirst();
-                if (pitch == null) {
-                    pitch = pitchDbHelper.getPitchAccentDao().queryBuilder()
-                            .where().eq("expression", baseForm).and().eq("reading", hiraganaReading).queryForFirst();
-                }
-                if (pitch != null) {
-                    word.setPitchPattern(pitch.getPitchPattern());
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to query PitchAccent", e);
             }
 
             words.add(word);
@@ -148,96 +112,51 @@ public class LocalSentenceParser implements SentenceParser {
         return words;
     }
 
-    private EntryOptimized rankCandidates(List<EntryOptimized> candidates, String surface, String baseForm,
-            String reading, String hiraganaReading) {
-        if (candidates == null || candidates.isEmpty()) {
-            return null;
+    private List<Term> findMatchingTerms(String surface, String baseForm, List<Long> dictIds) {
+        // Collect all possible search variants
+        java.util.Set<String> variants = new java.util.HashSet<>();
+        variants.add(surface);
+        if (baseForm != null)
+            variants.add(baseForm);
+
+        // Include deinflections (e.g. "soshite" -> "sosu"?)
+        List<DeinflectionInfo> deinflections = deinflector.getPotentialDeinflections(surface);
+        for (DeinflectionInfo info : deinflections) {
+            variants.add(info.getWord());
         }
 
-        EntryOptimized bestMatch = null;
-        int bestScore = Integer.MAX_VALUE;
+        // Query DB for everything matching any variant
+        List<Term> candidates = appDatabase.termDao().findTermsByVariants(new ArrayList<>(variants), dictIds);
 
-        for (EntryOptimized candidate : candidates) {
-            int score = calculateScore(candidate, surface, baseForm, reading, hiraganaReading);
-            if (score < bestScore) {
-                bestScore = score;
-                bestMatch = candidate;
-            }
-        }
+        // Sort candidates so the most likely match is at the top
+        candidates.sort((a, b) -> {
+            int scoreA = calculateCustomScore(a, surface, baseForm);
+            int scoreB = calculateCustomScore(b, surface, baseForm);
+            return Integer.compare(scoreA, scoreB);
+        });
 
-        return bestMatch;
+        // Limit to top 5 results to avoid overwhelming the popup
+        return candidates.subList(0, Math.min(candidates.size(), 5));
     }
 
-    private int calculateScore(EntryOptimized entry, String surface, String baseForm, String reading,
-            String hiraganaReading) {
-        // Implementation of legacy ranking logic
-        // 0. Exact match on surface or baseForm is better than reading match
-        int matchPriority = 100;
-        if (entry.getKanji().equals(surface) || entry.getKanji().equals(baseForm)) {
-            matchPriority = 0;
-        } else if (entry.getReadings().contains(reading) || entry.getReadings().contains(hiraganaReading)) {
-            matchPriority = 50;
+    private int calculateCustomScore(Term term, String surface, String baseForm) {
+        int score = term.getScore();
+        if (score <= 0)
+            score = 100000; // Unranked entries
+
+        // High priority: Exact match to the surface form
+        if (term.getExpression().equals(surface)) {
+            score -= 60000;
+        }
+        // Medium priority: Match to the tokenizer's base form (Kuromoji's guess)
+        else if (baseForm != null && term.getExpression().equals(baseForm)) {
+            score -= 40000;
+        }
+        // Lower priority: Reading match
+        else if (term.getReading().equals(surface)) {
+            score -= 20000;
         }
 
-        // 1. Primary entry status (legacy getEntryPriority)
-        int entryPriority = entry.isPrimaryEntry() ? 0 : 1;
-
-        // 2. Dictionary priority (legacy getDictPriority)
-        int dictPriority = 2; // Default
-        if (ca.fuwafuwa.gaku.Constants.JMDICT_DATABASE_NAME.equals(entry.getDictionary())) {
-            dictPriority = 0;
-        }
-
-        // 3. Frequency tags (legacy getPriority)
-        int freqPriority = getFrequencyPriority(entry);
-
-        // Combine scores (lower is better, hierarchy: match > dict > entry > freq)
-        return (matchPriority * 1000000) + (dictPriority * 100000) + (entryPriority * 10000) + freqPriority;
-    }
-
-    private int getFrequencyPriority(EntryOptimized entry) {
-        String[] priorities = entry.getPriorities().split(",");
-        int lowestPriority = 1000; // Default high
-
-        for (String priority : priorities) {
-            int pri = 1000;
-            if (priority.startsWith("nf") && priority.length() > 2) {
-                try {
-                    pri = Integer.parseInt(priority.substring(2));
-                } catch (NumberFormatException ignored) {
-                }
-            } else if (priority.equals("news1")) {
-                pri = 60;
-            } else if (priority.equals("news2")) {
-                pri = 70;
-            } else if (priority.equals("ichi1")) {
-                pri = 80;
-            } else if (priority.equals("ichi2")) {
-                pri = 90;
-            } else if (priority.equals("spec1")) {
-                pri = 100;
-            } else if (priority.equals("spec2")) {
-                pri = 110;
-            } else if (priority.equals("gai1")) {
-                pri = 120;
-            } else if (priority.equals("gai2")) {
-                pri = 130;
-            }
-            if (pri < lowestPriority) {
-                lowestPriority = pri;
-            }
-        }
-        return lowestPriority;
-    }
-
-    private boolean validateDeinflectionPOS(DeinflectionInfo deinf, EntryOptimized entry) {
-        if (deinf.getType() == 0xFF)
-            return true; // Original word
-        String entryPos = entry.getPos();
-        return (deinf.getType() & 1) != 0 && entryPos.contains("v1") ||
-                (deinf.getType() & 2) != 0 && entryPos.contains("v5") ||
-                (deinf.getType() & 4) != 0 && entryPos.contains("adj-i") ||
-                (deinf.getType() & 8) != 0 && entryPos.contains("vk") ||
-                (deinf.getType() & 16) != 0 && entryPos.contains("vs-");
+        return score;
     }
 }

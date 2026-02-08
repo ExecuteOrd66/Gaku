@@ -26,6 +26,7 @@ public class TextAnalyzer {
         StringBuilder sb = new StringBuilder();
         List<Text.Symbol> allSymbols = new ArrayList<>();
 
+        // Flatten MLKit hierarchy into a single string and a list of symbols
         for (Text.TextBlock block : mlKitText.getTextBlocks()) {
             for (Text.Line line : block.getLines()) {
                 parsedLines.add(new ParsedLine(line.getText(), line.getBoundingBox()));
@@ -44,26 +45,24 @@ public class TextAnalyzer {
             return new ParsedResult(parsedWords, parsedLines, displayData, ocrTime);
         }
 
+        // Parse the full text (Kuromoji / Jiten / JPDB)
         SentenceParser parser = parserFactory.getParser();
-        long startTime = System.currentTimeMillis();
         List<ParsedWord> words = parser.parse(fullText);
-        long endTime = System.currentTimeMillis();
-        android.util.Log.d("TextAnalyzer",
-                String.format("Batched parse of %d lines took %d ms", parsedLines.size(), (endTime - startTime)));
 
         int charIndex = 0;
 
         for (ParsedWord word : words) {
             String surface = word.getSurface();
 
-            // Skip newlines/whitespace in the SOURCE text that aren't part of the word
-            // But we must NOT skip symbols blindly.
-
-            // Only skip leading newlines if the current parsed word is NOT a newline
-            // itself.
-            while (charIndex < fullText.length()
-                    && fullText.charAt(charIndex) == '\n'
-                    && !surface.startsWith("\n")) {
+            // FIX: Skip ALL whitespace in the SOURCE text that isn't part of the parser's
+            // word.
+            // MLKit often inserts spaces that the tokenizer removes. We must advance
+            // charIndex
+            // past any source whitespace that isn't at the start of the current surface
+            // token.
+            while (charIndex < fullText.length() &&
+                    Character.isWhitespace(fullText.codePointAt(charIndex)) &&
+                    !startsWithWhitespace(surface)) {
                 charIndex++;
             }
 
@@ -71,9 +70,11 @@ public class TextAnalyzer {
                 break;
             }
 
+            // Calculate the visual bounding box for this word
             Rect tokenRect = calculateTokenRectFromGlobalSymbols(allSymbols, fullText, charIndex, surface.length());
             charIndex += surface.length();
 
+            // Create new word with the calculated bounding box
             ParsedWord newWord = new ParsedWord(surface, word.getReading(), word.getLemma(), tokenRect);
             newWord.setStatus(word.getStatus());
             newWord.setPitchPattern(word.getPitchPattern());
@@ -81,6 +82,7 @@ public class TextAnalyzer {
             newWord.setPos(word.getPos());
             newWord.setDictionary(word.getDictionary());
             newWord.setMeaningPos(word.getMeaningPos());
+            newWord.setMetadata(word.getMetadata());
 
             parsedWords.add(newWord);
         }
@@ -88,17 +90,24 @@ public class TextAnalyzer {
         return new ParsedResult(parsedWords, parsedLines, displayData, ocrTime);
     }
 
+    private boolean startsWithWhitespace(String s) {
+        if (s == null || s.isEmpty())
+            return false;
+        return Character.isWhitespace(s.codePointAt(0));
+    }
+
     private Rect calculateTokenRectFromGlobalSymbols(List<Text.Symbol> symbols, String fullText, int startIndex,
             int length) {
         Rect unionRect = null;
         int symIdx = 0;
 
+        // Validation
         if (startIndex < 0 || startIndex + length > fullText.length()) {
             return new Rect(0, 0, 0, 0);
         }
 
-        // Count how many non-whitespace characters exist before startIndex
-        // This ensures we align with the Symbol list which doesn't include whitespace.
+        // Fast-forward symIdx to match startIndex.
+        // MLKit Symbols list DOES NOT contain whitespace, but fullText DOES.
         for (int i = 0; i < startIndex; i++) {
             if (!Character.isWhitespace(fullText.codePointAt(i))) {
                 symIdx++;
@@ -108,28 +117,29 @@ public class TextAnalyzer {
         int charsToCollect = length;
         int currentTextIdx = startIndex;
 
-        while (charsToCollect > 0 && symIdx < symbols.size() && currentTextIdx < fullText.length()) {
+        while (charsToCollect > 0 && currentTextIdx < fullText.length()) {
 
-            // If the text character is whitespace, it won't have a corresponding symbol.
-            // Consume the text character but do not advance symIdx.
+            // If the source text has whitespace here, we consume the text index but NOT a
+            // symbol
             if (Character.isWhitespace(fullText.codePointAt(currentTextIdx))) {
                 currentTextIdx++;
                 charsToCollect--;
                 continue;
             }
 
-            // Map symbol to current char
-            Text.Symbol symbol = symbols.get(symIdx);
-            Rect symbolRect = symbol.getBoundingBox();
-            if (symbolRect != null) {
-                if (unionRect == null) {
-                    unionRect = new Rect(symbolRect);
-                } else {
-                    unionRect.union(symbolRect);
+            if (symIdx < symbols.size()) {
+                Text.Symbol symbol = symbols.get(symIdx);
+                Rect symbolRect = symbol.getBoundingBox();
+                if (symbolRect != null) {
+                    if (unionRect == null) {
+                        unionRect = new Rect(symbolRect);
+                    } else {
+                        unionRect.union(symbolRect);
+                    }
                 }
+                symIdx++;
             }
 
-            symIdx++;
             currentTextIdx++;
             charsToCollect--;
         }

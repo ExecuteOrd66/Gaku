@@ -31,9 +31,7 @@ class DictionaryRepository(private val db: AppDatabase, context: Context? = null
         return@withContext filterMatchesByDeinflection(matches, deinflectionResults)
     }
 
-    suspend fun getDefinitions(termId: Long): List<Definition> = withContext(Dispatchers.IO) {
-        return@withContext db.definitionDao().getDefinitionsForTerm(termId)
-    }
+    // REMOVED: getDefinitions(termId). The definitions are now in the Term object.
 
     private fun getPotentialForms(text: String): List<DeinflectionInfo> {
         val real = deinflector?.getPotentialDeinflections(text)

@@ -28,7 +28,6 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/ads_app_id" />
 
-        <!-- Correct for MLKit V2 Unbundled Japanese model -->
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="ocr_japanese" />
@@ -73,6 +72,11 @@
             android:screenOrientation="portrait">
         </activity>
 
+        <activity
+            android:name=".DictionaryActivity"
+            android:label="Dictionaries"
+            android:screenOrientation="portrait">
+        </activity>
 
         <activity
             android:name=".PassthroughActivity"
@@ -100,6 +104,3 @@
     </application>
 
 </manifest>
-
-
-

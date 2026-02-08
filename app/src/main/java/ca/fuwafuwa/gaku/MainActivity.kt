@@ -12,6 +12,7 @@ import android.os.CountDownTimer
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import ca.fuwafuwa.gaku.Dialogs.StarRatingDialogFragment
 
@@ -23,6 +24,31 @@ class MainActivity : AppCompatActivity()
 
     private lateinit var mPrefs : SharedPreferences
     private lateinit var mStartGakuIntent: Intent
+
+    // Replacement for REQUEST_DRAW_ON_TOP
+    private val drawOverlayLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        Log.d(TAG, "Recieved ACTION_MANAGE_OVERLAY_PERMISSION result")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            val relaunchAppText = "Relaunch Gaku after verifying permission"
+            Toast.makeText(this, "Check Permission: Draw on Other Apps\n$relaunchAppText", Toast.LENGTH_LONG).show()
+            finish()
+        }
+    }
+
+    // Replacement for REQUEST_SCREENSHOT
+    private val screenCaptureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        Log.d(TAG, "Recieved REQUEST_SCREENSHOT result")
+        val relaunchAppText = "Relaunch Gaku after verifying permission"
+
+        if (result.resultCode != Activity.RESULT_OK) {
+            Toast.makeText(this, "Check Permission: Record Screen\n$relaunchAppText", Toast.LENGTH_LONG).show()
+            finish()
+        } else {
+            mStartGakuIntent = Intent(this, MainService::class.java)
+                    .putExtra(EXTRA_PROJECTION_RESULT_CODE, result.resultCode)
+                    .putExtra(EXTRA_PROJECTION_RESULT_INTENT, result.data)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?)
     {
@@ -72,42 +98,6 @@ class MainActivity : AppCompatActivity()
         mIsActivityVisible = true
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?)
-    {
-        Log.d(TAG, "onActivityResult")
-
-        val relaunchAppText = "Relaunch Gaku after verifying permission"
-
-        if (requestCode == REQUEST_DRAW_ON_TOP)
-        {
-            Log.d(TAG, "Recieved ACTION_MANAGE_OVERLAY_PERMISSION Intent")
-
-            if (resultCode != Activity.RESULT_OK)
-            {
-                Toast.makeText(this, "Check Permission: Draw on Other Apps\n$relaunchAppText", Toast.LENGTH_LONG).show()
-                finish()
-            }
-
-            return
-        }
-
-        if (requestCode == REQUEST_SCREENSHOT)
-        {
-            Log.d(TAG, "Recieved REQUEST_SCREENSHOT Intent")
-
-            if (resultCode != Activity.RESULT_OK)
-            {
-                Toast.makeText(this, "Check Permission: Record Screen\n$relaunchAppText", Toast.LENGTH_LONG).show()
-                finish()
-            }
-
-            mStartGakuIntent = Intent(this, MainService::class.java)
-                    .putExtra(EXTRA_PROJECTION_RESULT_CODE, resultCode)
-                    .putExtra(EXTRA_PROJECTION_RESULT_INTENT, data)
-            return
-        }
-    }
-
     fun startGaku(startFragment: MainStartFragment)
     {
         if (MainService.IsRunning())
@@ -139,7 +129,8 @@ class MainActivity : AppCompatActivity()
             }.start()
         }
         else {
-            Toast.makeText(this, "Unable to start Gaku service", Toast.LENGTH_LONG).show()
+            // Permission might have just been granted, intent not ready yet
+            Toast.makeText(this, "Initializing service...", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -151,7 +142,7 @@ class MainActivity : AppCompatActivity()
             if (!Settings.canDrawOverlays(this))
             {
                 Log.d(TAG, "Sending ACTION_MANAGE_OVERLAY_PERMISSION Intent")
-                startActivityForResult(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")), REQUEST_DRAW_ON_TOP)
+                drawOverlayLauncher.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
             }
         }
         else
@@ -164,7 +155,9 @@ class MainActivity : AppCompatActivity()
     {
         Log.d(TAG, "Sending REQUEST_SCREENSHOT Intent")
         val mediaProjectionManager: MediaProjectionManager? = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        startActivityForResult(mediaProjectionManager!!.createScreenCaptureIntent(), REQUEST_SCREENSHOT)
+        if (mediaProjectionManager != null) {
+            screenCaptureLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
+        }
     }
 
     private fun showRatingDialog()
@@ -201,7 +194,3 @@ class MainActivity : AppCompatActivity()
         private val TAG = MainActivity::class.java.name
     }
 }
-
-
-
-

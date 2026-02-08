@@ -1,16 +1,23 @@
 package ca.fuwafuwa.gaku.data.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import ca.fuwafuwa.gaku.data.Definition
 import ca.fuwafuwa.gaku.data.Dictionary
 import ca.fuwafuwa.gaku.data.Kanji
 import ca.fuwafuwa.gaku.data.KanjiMeta
 import ca.fuwafuwa.gaku.data.TagMeta
 import ca.fuwafuwa.gaku.data.Term
 import ca.fuwafuwa.gaku.data.TermMeta
+
+data class DictionarySummary(
+    @Embedded val dictionary: Dictionary,
+    @ColumnInfo(name = "termCount") val termCount: Int,
+    @ColumnInfo(name = "kanjiCount") val kanjiCount: Int
+)
 
 @Dao
 interface DictionaryDao {
@@ -20,6 +27,14 @@ interface DictionaryDao {
     @Query("SELECT * FROM dictionaries")
     fun getAllDictionaries(): List<Dictionary>
 
+    @Query("""
+        SELECT d.*, 
+        (SELECT COUNT(*) FROM terms t WHERE t.dictionaryId = d.id) as termCount,
+        (SELECT COUNT(*) FROM kanji k WHERE k.dictionaryId = d.id) as kanjiCount
+        FROM dictionaries d
+    """)
+    fun getDictionariesWithStats(): List<DictionarySummary>
+
     @Query("DELETE FROM dictionaries WHERE id = :id")
     fun deleteDictionary(id: Long)
 }
@@ -28,6 +43,10 @@ interface DictionaryDao {
 interface TermDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(term: Term): Long
+
+    // Simplified: No longer need to return IDs, just void/Unit is fine
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertAll(terms: List<Term>)
 
     @Query("SELECT * FROM terms WHERE expression IN (:queries) OR reading IN (:queries)")
     fun findTermsExact(queries: List<String>): List<Term>
@@ -44,7 +63,6 @@ interface TermDao {
     @Query("SELECT * FROM terms WHERE expression = :expression AND reading = :reading")
     fun findTermExact(expression: String, reading: String): List<Term>
 
-
     @Query(
         """
         SELECT * FROM terms
@@ -58,15 +76,6 @@ interface TermDao {
 
     @Query("SELECT COUNT(*) FROM terms")
     fun count(): Int
-}
-
-@Dao
-interface DefinitionDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(definitions: List<Definition>)
-
-    @Query("SELECT * FROM definitions WHERE termId = :termId")
-    fun getDefinitionsForTerm(termId: Long): List<Definition>
 }
 
 @Dao

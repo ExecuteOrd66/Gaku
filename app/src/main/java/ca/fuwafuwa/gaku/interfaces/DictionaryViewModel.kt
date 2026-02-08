@@ -15,9 +15,6 @@ class DictionaryViewModel(private val repository: DictionaryRepository) : ViewMo
     private val _searchResults = MutableStateFlow<List<Term>>(emptyList())
     val searchResults: StateFlow<List<Term>> = _searchResults
 
-    // Cache definitions in memory so we don't re-query DB if user taps same word twice
-    private val definitionCache = mutableMapOf<Long, List<Definition>>()
-
     fun search(query: String) {
         viewModelScope.launch {
             val results = repository.searchTerms(query)
@@ -30,22 +27,7 @@ class DictionaryViewModel(private val repository: DictionaryRepository) : ViewMo
      * or when the user expands a card.
      */
     fun loadDefinitionsForTerm(term: Term, onResult: (List<Definition>) -> Unit) {
-        // 1. Check Memory Cache
-        if (definitionCache.containsKey(term.id)) {
-            onResult(definitionCache[term.id]!!)
-            return
-        }
-
-        // 2. Load from DB
-        viewModelScope.launch {
-            val defs = repository.getDefinitions(term.id)
-
-            // 3. Process Structured Content if necessary
-            // Yomitan definitions can be strings OR JSON objects.
-            // You might want to parse the JSON here before sending to UI.
-
-            definitionCache[term.id] = defs
-            onResult(defs)
-        }
+        // Fix: Definitions are now embedded in the Term object, no DB call needed.
+        onResult(term.definitions)
     }
 }

@@ -177,22 +177,25 @@ public class WordDetailWindow extends Window {
         if (word.getMeanings() != null && !word.getMeanings().isEmpty()) {
             StringBuilder sb = new StringBuilder();
             List<String> meanings = word.getMeanings();
-            List<String> meaningPos = word.getMeaningPos();
-            String dictionary = word.getDictionary();
 
+            int definitionCounter = 1;
             for (int i = 0; i < meanings.size(); i++) {
-                if (i != 0) {
-                    sb.append("\n\n");
-                }
-                sb.append(ca.fuwafuwa.gaku.LangUtils.Companion.ConvertIntToCircledNum(i + 1));
-                sb.append(" ");
+                String line = meanings.get(i);
 
-                if (ca.fuwafuwa.gaku.Constants.JMDICT_DATABASE_NAME.equals(dictionary) &&
-                        meaningPos != null && i < meaningPos.size() && !meaningPos.get(i).isEmpty()) {
-                    sb.append(String.format("(%s) ", meaningPos.get(i)));
+                if (line.isEmpty()) {
+                    sb.append("\n"); // Just a spacer
+                    definitionCounter = 1; // Reset counter for next word block
+                    continue;
                 }
 
-                sb.append(meanings.get(i));
+                if (line.startsWith("【")) {
+                    // This is a header, don't add a circled number
+                    sb.append(line).append("\n");
+                } else {
+                    // This is a definition, add the number
+                    sb.append(ca.fuwafuwa.gaku.LangUtils.Companion.ConvertIntToCircledNum(definitionCounter++));
+                    sb.append(" ").append(line.trim()).append("\n");
+                }
             }
             defText.setText(sb.toString());
         } else {

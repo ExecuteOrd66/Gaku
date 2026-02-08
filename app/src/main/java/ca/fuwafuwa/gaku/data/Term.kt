@@ -31,5 +31,9 @@ data class Term(
     val rules: String,
     val score: Int,
     val sequence: Int,
-    val termTags: String = ""
+    val termTags: String = "",
+    
+    // NEW: Embedded definitions. 
+    // This saves ~30% space by removing the need for a secondary table and foreign keys.
+    val definitions: List<Definition>
 )
