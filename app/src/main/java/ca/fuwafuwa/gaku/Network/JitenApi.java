@@ -21,7 +21,7 @@ public interface JitenApi {
         // --- Reader Endpoints ---
 
         @POST("/api/reader/parse")
-        Call<List<JitenDTOs.DeckWordDto>> parse(
+        Call<JitenDTOs.ReaderParseResponse> parse(
                         @Header("Authorization") String token,
                         @Body JitenDTOs.ReaderParseRequest request);
 

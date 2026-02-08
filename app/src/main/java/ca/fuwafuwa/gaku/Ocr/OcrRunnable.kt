@@ -254,16 +254,17 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
             val rectA = a.boundingBox ?: return@Comparator 0
             val rectB = b.boundingBox ?: return@Comparator 0
 
-            // If blocks are vertically aligned (similar X coordinates), sort Top-to-Bottom.
-            // If they are horizontally separated, sort Right-to-Left (Manga style).
-            val threshold = 20 
+            // If blocks are vertically overlapping, they are likely part of the same "row"
+            // in horizontal text, or staggered columns in vertical.
+            val xThreshold = boxParams.width / 5 
+            val xDiff = Math.abs(rectA.left - rectB.left)
 
-            if (Math.abs(rectA.left - rectB.left) > threshold) {
-                // Right to Left (Manga Columns)
-                rectB.left - rectA.left
-            } else {
-                // Top to Bottom (Standard Rows)
+            if (xDiff < xThreshold) {
+                // Same column area -> Top to Bottom
                 rectA.top - rectB.top
+            } else {
+                // Different columns -> Right to Left
+                rectB.left - rectA.left
             }
         })
 

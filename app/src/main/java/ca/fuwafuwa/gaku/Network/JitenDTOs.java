@@ -29,23 +29,33 @@ public class JitenDTOs {
         public String state; // "blacklist" or "neverForget"
     }
 
+    public static class ReaderParseResponse {
+        public List<List<DeckWordDto>> tokens;
+        // The API also sends "vocabulary", but we only need "tokens" for the parser
+    }
+
     public static class DeckWordDto {
         public int wordId;
-        public String originalText;
         public int readingIndex;
-        // JitenReader uses these for positioning, but Gaku calculates its own Rects
+        public int start;
+        public int end;
+        public int length;
     }
 
     public static class WordDto {
         public int wordId;
         public ReadingDto mainReading;
+        public List<ReadingDto> alternativeReadings; // Added to find pure kana
         public List<DefinitionDto> definitions;
         public List<Integer> pitchAccents;
-        public List<Integer> knownStates; // [0: New, 1: Young, 2: Mature, 3: Blacklisted, 4: Due, 5: Mastered]
+        public List<Integer> knownStates;
     }
 
     public static class ReadingDto {
         public String text;
+        public int readingType; // 0 = Spelling (Kanji), 1 = Reading (Kana)
+        public int readingIndex;
+        public int frequencyRank; // Added for stars
     }
 
     public static class DefinitionDto {

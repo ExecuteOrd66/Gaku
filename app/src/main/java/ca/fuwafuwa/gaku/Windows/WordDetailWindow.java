@@ -139,7 +139,7 @@ public class WordDetailWindow extends Window {
                 break;
             case UserWord.STATUS_KNOWN:
                 tagText.setText("KNOWN");
-                tagText.setBackgroundColor(Color.parseColor("#2ecc71"));
+                tagText.setBackgroundColor(Color.parseColor("#19964dff"));
                 break;
             case UserWord.STATUS_MATURE:
                 tagText.setText("MATURE");
@@ -147,7 +147,7 @@ public class WordDetailWindow extends Window {
                 break;
             case UserWord.STATUS_MASTERED:
                 tagText.setText("MASTERED");
-                tagText.setBackgroundColor(Color.parseColor("#27ae60"));
+                tagText.setBackgroundColor(Color.parseColor("#19964dff"));
                 break;
             case UserWord.STATUS_DUE:
                 tagText.setText("DUE"); // Red?
@@ -155,7 +155,7 @@ public class WordDetailWindow extends Window {
                 break;
             case UserWord.STATUS_DISMISSED:
                 tagText.setText("DISMISSED");
-                tagText.setBackgroundColor(Color.parseColor("#95a5a6"));
+                tagText.setBackgroundColor(Color.parseColor("#3e4546ff"));
                 showMining = true;
                 break;
             default:
@@ -165,10 +165,21 @@ public class WordDetailWindow extends Window {
                 break;
         }
 
+        // --- FREQUENCY STARS LOGIC ---
+        Object freqObj = word.getMetadata("freqRank");
+        if (freqObj instanceof Integer) {
+            int rank = (Integer) freqObj;
+            String stars = getStarsForRank(rank);
+            freqText.setText(String.format("%s (Rank #%d)", stars, rank));
+        } else {
+            freqText.setText("");
+        }
+
         layoutMining.setVisibility(showMining ? android.view.View.VISIBLE : android.view.View.GONE);
         layoutGrading.setVisibility(!showMining ? android.view.View.VISIBLE : android.view.View.GONE);
 
-        if (word.getPitchPattern() != null && word.getReading() != null) {
+        // Ensure reading is passed to the graph
+        if (word.getReading() != null && word.getPitchPattern() != null) {
             pitchGraph.setData(word.getReading(), word.getPitchPattern());
         } else {
             pitchGraph.setData("", "");
@@ -203,6 +214,20 @@ public class WordDetailWindow extends Window {
         }
 
         freqText.setText("POS: " + (word.getPos() != null ? word.getPos() : "Unknown"));
+    }
+
+    private String getStarsForRank(int rank) {
+        if (rank <= 0)
+            return "☆☆☆☆☆";
+        if (rank <= 1500)
+            return "★★★★★";
+        if (rank <= 5000)
+            return "★★★★☆";
+        if (rank <= 20000)
+            return "★★★☆☆";
+        if (rank <= 32000)
+            return "★★☆☆☆";
+        return "★☆☆☆☆";
     }
 
     /**

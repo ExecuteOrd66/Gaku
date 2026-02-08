@@ -34,6 +34,8 @@ import android.widget.Toast;
 import ca.fuwafuwa.gaku.Interfaces.Stoppable;
 import ca.fuwafuwa.gaku.Windows.Window;
 import ca.fuwafuwa.gaku.Windows.WindowCoordinator;
+import ca.fuwafuwa.gaku.Network.JitenApiClient;
+
 
 import static androidx.core.app.NotificationCompat.FLAG_FOREGROUND_SERVICE;
 import static androidx.core.app.NotificationCompat.FLAG_ONGOING_EVENT;
@@ -177,6 +179,8 @@ public class MainService extends Service implements Stoppable {
 
         mMediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
         mHandler = new MainServiceHandler(this, mWindowCoordinator);
+
+        JitenApiClient.getInstance(this).setHandler(mHandler);
 
         // Set preferences for ratings
         SharedPreferences prefs = getSharedPreferences(Constants.GAKU_PREF_FILE, Context.MODE_PRIVATE);

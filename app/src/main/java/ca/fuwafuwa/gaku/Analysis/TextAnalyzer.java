@@ -26,14 +26,42 @@ public class TextAnalyzer {
         StringBuilder sb = new StringBuilder();
         List<Text.Symbol> allSymbols = new ArrayList<>();
 
-        // Flatten MLKit hierarchy into a single string and a list of symbols
-        for (Text.TextBlock block : mlKitText.getTextBlocks()) {
-            for (Text.Line line : block.getLines()) {
+        // 1. Get blocks and SORT them Right-to-Left (Japanese Vertical order)
+        List<Text.TextBlock> blocks = new ArrayList<>(mlKitText.getTextBlocks());
+        blocks.sort((a, b) -> {
+            Rect rA = a.getBoundingBox();
+            Rect rB = b.getBoundingBox();
+            if (rA == null || rB == null)
+                return 0;
+
+            // If blocks are vertically aligned, sort top-to-bottom
+            // Otherwise, sort right-to-left
+            int xThreshold = displayData.getBoxParams().width / 6;
+            if (Math.abs(rA.left - rB.left) < xThreshold) {
+                return rA.top - rB.top;
+            } else {
+                return rB.left - rA.left; // Right to Left
+            }
+        });
+
+        for (Text.TextBlock block : blocks) {
+            // 2. ALSO sort lines within the block (ML Kit sometimes groups columns)
+            List<Text.Line> lines = new ArrayList<>(block.getLines());
+            lines.sort((a, b) -> {
+                Rect rA = a.getBoundingBox();
+                Rect rB = b.getBoundingBox();
+                if (rA == null || rB == null)
+                    return 0;
+                return rB.left - rA.left; // Right to Left
+            });
+
+            for (Text.Line line : lines) {
                 parsedLines.add(new ParsedLine(line.getText(), line.getBoundingBox()));
-                if (sb.length() > 0) {
+                if (sb.length() > 0)
                     sb.append("\n");
-                }
                 sb.append(line.getText());
+
+                // Symbols must follow the sorted line order
                 for (Text.Element element : line.getElements()) {
                     allSymbols.addAll(element.getSymbols());
                 }
@@ -53,28 +81,39 @@ public class TextAnalyzer {
 
         for (ParsedWord word : words) {
             String surface = word.getSurface();
+            if (surface == null || surface.isEmpty())
+                continue;
 
-            // FIX: Skip ALL whitespace in the SOURCE text that isn't part of the parser's
-            // word.
-            // MLKit often inserts spaces that the tokenizer removes. We must advance
-            // charIndex
-            // past any source whitespace that isn't at the start of the current surface
-            // token.
-            while (charIndex < fullText.length() &&
-                    Character.isWhitespace(fullText.codePointAt(charIndex)) &&
-                    !startsWithWhitespace(surface)) {
-                charIndex++;
+            Rect tokenRect;
+
+            // 1. Check for explicit Character Offsets (Best for Jiten)
+            if (word.getMetadata("start") != null && word.getMetadata("end") != null) {
+                int apiStart = (int) word.getMetadata("start");
+                int apiEnd = (int) word.getMetadata("end");
+                int apiLen = apiEnd - apiStart;
+
+                tokenRect = calculateTokenRectFromGlobalSymbols(allSymbols, fullText, apiStart, apiLen);
+
+                // Advance our internal tracker to match the API's position
+                charIndex = apiEnd;
+            }
+            // 2. Fallback to Character Counting (For LocalParser and JPDB)
+            else {
+                // Skip whitespace in source text that the tokenizer removed
+                while (charIndex < fullText.length() &&
+                        Character.isWhitespace(fullText.codePointAt(charIndex)) &&
+                        !startsWithWhitespace(surface)) {
+                    charIndex++;
+                }
+
+                if (charIndex >= fullText.length())
+                    break;
+
+                tokenRect = calculateTokenRectFromGlobalSymbols(allSymbols, fullText, charIndex, surface.length());
+                charIndex += surface.length();
             }
 
-            if (charIndex >= fullText.length()) {
-                break;
-            }
-
-            // Calculate the visual bounding box for this word
-            Rect tokenRect = calculateTokenRectFromGlobalSymbols(allSymbols, fullText, charIndex, surface.length());
-            charIndex += surface.length();
-
-            // Create new word with the calculated bounding box
+            // Create the final word with the calculated visual box
             ParsedWord newWord = new ParsedWord(surface, word.getReading(), word.getLemma(), tokenRect);
             newWord.setStatus(word.getStatus());
             newWord.setPitchPattern(word.getPitchPattern());

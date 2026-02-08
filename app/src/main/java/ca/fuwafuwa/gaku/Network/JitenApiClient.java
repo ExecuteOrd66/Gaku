@@ -25,12 +25,21 @@ public class JitenApiClient {
 
     private static final String TAG = "JitenApiClient";
     private static JitenApiClient instance;
+    private android.os.Handler mHandler;
 
     private JitenApi api;
     private String authToken;
     private String baseUrl;
     private UserDatabaseHelper dbHelper;
     private Context mContext;
+
+    public void setHandler(android.os.Handler handler) {
+        this.mHandler = handler;
+    }
+
+    private void sendMessageToHandler(String msg) {
+        android.os.Message.obtain(mHandler, 0, msg).sendToTarget();
+    }
 
     public interface SyncCallback {
         void onSyncComplete(boolean success, int updatedCount);
@@ -132,22 +141,36 @@ public class JitenApiClient {
                 "https://api.jiten.moe");
         String newAuthToken = PreferenceManager.getDefaultSharedPreferences(mContext).getString("jiten_api_key", "");
 
-        if (!newAuthToken.isEmpty() && !newAuthToken.startsWith("Bearer ")) {
-            newAuthToken = "Bearer " + newAuthToken;
+        if (!newAuthToken.isEmpty()) {
+            // If it starts with ak_, it MUST use "ApiKey " prefix
+            if (newAuthToken.startsWith("ak_")) {
+                authToken = "ApiKey " + newAuthToken;
+            }
+            // If the user already included a prefix, don't double it up
+            else if (newAuthToken.startsWith("Bearer ") || newAuthToken.startsWith("ApiKey ")) {
+                authToken = newAuthToken;
+            }
+            // Default for legacy/short tokens
+            else {
+                authToken = "Bearer " + newAuthToken;
+            }
+        } else {
+            authToken = "";
         }
 
         if (!newBaseUrl.equals(baseUrl)) {
             baseUrl = newBaseUrl;
+            // Retrofit requires base URL to end with a "/"
+            String retrofitUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+
             OkHttpClient client = new OkHttpClient.Builder().build();
             Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl(baseUrl)
+                    .baseUrl(retrofitUrl)
                     .client(client)
                     .addConverterFactory(GsonConverterFactory.create(new GsonBuilder().setLenient().create()))
                     .build();
             api = retrofit.create(JitenApi.class);
         }
-
-        authToken = newAuthToken;
     }
 
     public void login(String username, String password, SyncCallback callback) {
@@ -252,22 +275,33 @@ public class JitenApiClient {
         }
     }
 
-    public List<JitenDTOs.DeckWordDto> parse(String text) throws java.io.IOException {
+    public JitenDTOs.ReaderParseResponse parse(String text) throws java.io.IOException {
         refreshSettings();
         if (authToken == null || authToken.isEmpty()) {
+            sendMessageToHandler("Jiten API Key is missing in settings.");
             return null;
         }
 
-        // Wrap the raw string into the DTO required by the new POST endpoint
         JitenDTOs.ReaderParseRequest request = new JitenDTOs.ReaderParseRequest(text);
-
-        // Pass the request object instead of the raw text string
-        retrofit2.Response<List<JitenDTOs.DeckWordDto>> response = api.parse(authToken, request).execute();
+        retrofit2.Response<JitenDTOs.ReaderParseResponse> response = api.parse(authToken, request).execute();
 
         if (response.isSuccessful()) {
             return response.body();
+        } else if (response.code() == 401) {
+            String rawToken = PreferenceManager.getDefaultSharedPreferences(mContext)
+                    .getString("jiten_api_key", "");
+
+            if (rawToken.startsWith("ak_") && authToken.startsWith("Bearer")) {
+                sendMessageToHandler("Auth Error: API Key (ak_...) sent with 'Bearer' prefix. Updating to 'ApiKey'...");
+                // Trigger a re-refresh next time
+            } else {
+                sendMessageToHandler("Jiten Auth Failed: Invalid API Key. Please re-copy it from Jiten.moe settings.");
+            }
+            return null;
+        } else {
+            sendMessageToHandler("Jiten API Error: " + response.code());
+            return null;
         }
-        return null;
     }
 
     public JitenDTOs.WordDto getWordDetails(int wordId, int readingIndex) throws java.io.IOException {

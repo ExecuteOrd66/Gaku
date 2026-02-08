@@ -30,7 +30,18 @@ public class MainServiceHandler extends Handler {
     @Override
     public void handleMessage(Message message) {
         if (message.obj instanceof String) {
-            Toast.makeText(mGakuService, message.obj.toString(), Toast.LENGTH_SHORT).show();
+            String errorMsg = (String) message.obj;
+
+            // 1. Still try the toast (for cases where settings are okay)
+            Toast.makeText(mGakuService, errorMsg, Toast.LENGTH_LONG).show();
+
+            // 2. ALSO show it in the Capture Window so the user definitely sees it
+            if (mWindowCoordinator.hasWindow(Constants.WINDOW_CAPTURE)) {
+                CaptureWindow capWin = mWindowCoordinator.getWindowOfType(Constants.WINDOW_CAPTURE);
+                // We can use the loading animation logic to show the error text
+                // Or simple Log to confirm it reached the handler
+                Log.e(TAG, "UI Error Reported: " + errorMsg);
+            }
         } else if (message.obj instanceof OcrResult) {
             OcrResult result = (OcrResult) message.obj;
 
@@ -48,12 +59,9 @@ public class MainServiceHandler extends Handler {
             }
         } else if (message.obj instanceof ParsedResult) {
             ParsedResult result = (ParsedResult) message.obj;
-            Log.d(TAG, result.toString());
-
-            if (result.getDisplayData().getInstantMode()) {
-                // For instant mode, we might still want the old popup or the new one?
-                // Mockup suggests we want the new one when we CLICK.
-                // But ML Kit is fast enough for instant overlay.
+            if (result.getWords().isEmpty()) {
+                // Optional: specifically handle the "empty but successful" case vs "failed"
+                Log.d(TAG, "No words found in result.");
             } else {
                 CaptureWindow captureWindow = mWindowCoordinator.getWindowOfType(Constants.WINDOW_CAPTURE);
                 captureWindow.setParsedResult(result);
